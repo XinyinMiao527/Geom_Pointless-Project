@@ -1,0 +1,66 @@
+---
+title: "Methods Proposal and Outline"
+author: "Yiming Cao, Zichen Fan, Xinyin Miao, Teresa Sha"
+date: "2025-03-25"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+## EDA recap and motivation
+
+From the EDA we found strong seasonal and day-of-week effects on mental health EMS calls, a nonlinear temperature–outcome relationship, and only a weak PM2.5 signal in raw scatter plots. The data has 124 observations (EPA monitors sample every 3 days) and the outcome is a daily count (mental_health mean ~486, suicide mean ~5), so we need a count regression that can handle overdispersion without overfitting on a small n.
+
+This motivates a quasi-Poisson time series GLM — it handles overdispersed counts, lets us flexibly adjust for time trends and temperature with splines, and only requires base R packages.
+
+## Quasi-Poisson GLM — analysis plan (Yiming Cao)
+
+### Model
+
+$$
+\log(\mu_t) = \beta_0 + \beta_1 \cdot \text{PM2.5}_t + \text{ns}(\text{time}, df) + \text{ns}(\text{tmean}_t, 3) + \beta_2 \cdot \text{is\_weekend}_t + \beta_3 \cdot \text{precip}_t
+$$
+
+where $Y_t \sim \text{Quasi-Poisson}$. Same structure for both outcomes (mental_health and suicide).
+
+### Covariate selection
+
+- **ns(time, 4)**: natural spline to capture the seasonal trend seen in EDA. ~1 df per 3 months.
+- **ns(tmean, 3)**: nonlinear temperature adjustment. EDA showed a curved relationship that a linear term wouldn't capture, 3 df should be sufficient given n = 124.
+- **is_weekend**: binary indicator. EDA showed a clear weekday/weekend split (~510 vs ~425). Using full factor(weekday) would cost 6 df which seems excessive for 124 obs.
+- **precip**: linear term as a nuisance covariate — precipitation may affect both air quality and behavior.
+- Not including wind speed or RH to avoid collinearity issues with the small sample size.
+
+### R packages
+
+`stats` (glm), `splines` (ns), `ggplot2` (figures).
+
+### Sensitivity analyses
+
+- Vary time trend spline df from 3 to 6 to check whether the PM2.5 estimate is sensitive to how much seasonal variation we absorb
+- Exclude high-PM2.5 days (>95th percentile) that are likely wildfire smoke events, which represent a different exposure pattern
+- Test lagged temperature (previous measurement day) instead of same-day
+
+### Expected visualizations
+
+- Rate ratio forest plot: PM2.5 effect (per 10 μg/m³) with 95% CI for both outcomes
+- Sensitivity plot showing how the PM2.5 coefficient changes across different time trend df choices
+- Residual diagnostics: deviance residuals vs fitted, PACF of residuals to check for remaining autocorrelation
+
+## Methods section outline
+
+- Quasi-Poisson GLM to estimate association between same-day PM2.5 and mental health EMS call counts in NYC, 2024
+- Primary outcome: daily mental health crisis calls (EDP + ALTMEN); secondary: suicide-related calls (JUMPDN + JUMPUP)
+- Exposure: city-wide mean PM2.5 from EPA FRM monitors
+- Adjusted for: seasonal/long-term trend (natural spline, 4 df), temperature (natural spline, 3 df), weekend indicator, precipitation
+- Results as rate ratio per 10 μg/m³ PM2.5 increase with 95% CIs
+- Sensitivity: time trend df (3–6), excluded wildfire days, lagged temperature
+
+## Team assignments
+
+| Method | Person | Status |
+|--------|--------|--------|
+| Quasi-Poisson GLM | Yiming Cao | in progress |
+| Mixed Model | Zichen Fan | — |
+| Case-crossover | Teresa Sha | — |
+| TBD | Xinyin Miao | — |
