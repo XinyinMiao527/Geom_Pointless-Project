@@ -64,3 +64,320 @@ where $Y_t \sim \text{Quasi-Poisson}$. Same structure for both outcomes (mental_
 | Mixed Model | Zichen Fan | — |
 | Case-crossover | Teresa Sha | — |
 | TBD | Xinyin Miao | — |
+
+
+
+############################################################
+## case_crossover_sensitivity.R----Teresa Sha
+## Sensitivity analysis:
+## time-stratified case-crossover using conditional Poisson
+############################################################
+
+## ---------------------------
+## 0. packages
+## ---------------------------
+packages <- c("dplyr", "lubridate", "splines", "gnm", "broom")
+
+to_install <- packages[!packages %in% installed.packages()[, "Package"]]
+if (length(to_install) > 0) install.packages(to_install)
+
+library(dplyr)
+library(lubridate)
+library(splines)
+library(gnm)
+library(broom)
+
+```
+
+```{r}
+## ---------------------------
+## 1. read data
+## ---------------------------
+## Choose ONE path that matches your own folder structure.
+
+## Option A: if your script is inside the project folder
+## and analysis_2024.csv is in data/
+file_path <- "data/analysis_2024.csv"
+
+## Option B: if analysis_2024.csv is in the same folder as this script
+## file_path <- "analysis_2024.csv"
+
+## Option C: if you want to use full local path on your computer
+## file_path <- "/Users/yourname/Desktop/aa_project/data/analysis_2024.csv"
+
+file_path <- file.choose()
+df <- read.csv(file_path)
+
+```
+
+```{r}
+## ---------------------------
+## 2. basic cleaning
+## ---------------------------
+df <- df %>%
+  mutate(
+    date = as.Date(date),
+    year = year(date),
+    month_num = month(date),
+    dow_num = wday(date, week_start = 1),  # Monday = 1
+    dow_name = factor(
+      dow_num,
+      levels = 1:7,
+      labels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    )
+  ) %>%
+  arrange(date)
+
+## Quick check
+cat("Rows:", nrow(df), "\n")
+cat("Date range:", as.character(min(df$date)), "to", as.character(max(df$date)), "\n")
+print(names(df))
+```
+
+```{r}
+## ---------------------------
+## 3. create case-crossover strata
+## ---------------------------
+## Time-stratified control selection:
+## same year + same month + same day of week
+## This matches the usual case-crossover setup.
+
+df <- df %>%
+  mutate(
+    stratum = interaction(year, month_num, dow_name, drop = TRUE)
+  )
+
+## Keep only strata with at least 2 observed days
+## because strata with only 1 row do not contribute within-stratum comparison
+df_cc <- df %>%
+  group_by(stratum) %>%
+  mutate(n_in_stratum = n()) %>%
+  ungroup() %>%
+  filter(n_in_stratum >= 2)
+
+cat("Rows after dropping singleton strata:", nrow(df_cc), "\n")
+cat("Number of strata kept:", n_distinct(df_cc$stratum), "\n")
+```
+
+```{r}
+## ---------------------------
+## 4. create lag variables
+## ---------------------------
+## Since PM2.5 is measured only on selected days,
+## these lags are based on previous observed row in the merged dataset.
+## For this sensitivity analysis, lag 0 and lag 1 are enough.
+
+df_cc <- df_cc %>%
+  arrange(date) %>%
+  mutate(
+    pm25_lag1 = lag(pm25, 1),
+    pm25_lag2 = lag(pm25, 2),
+    tmean_lag1 = lag(tmean, 1),
+    rh_max_lag1 = lag(rh_max, 1)
+  )
+
+## Datasets for lag models
+df_cc_lag1 <- df_cc %>%
+  filter(!is.na(pm25_lag1), !is.na(tmean_lag1), !is.na(rh_max_lag1))
+
+df_cc_lag2 <- df_cc %>%
+  filter(!is.na(pm25_lag1), !is.na(pm25_lag2),
+         !is.na(tmean_lag1), !is.na(rh_max_lag1))
+```
+
+```{r}
+## ---------------------------
+## 5. helper function for IRR output
+## ---------------------------
+get_irr <- function(model, exposure_name = "pm25", increment = 1) {
+  beta <- coef(model)[exposure_name]
+  se   <- sqrt(vcov(model)[exposure_name, exposure_name])
+
+  est  <- exp(beta * increment)
+  low  <- exp((beta - 1.96 * se) * increment)
+  high <- exp((beta + 1.96 * se) * increment)
+
+  out <- data.frame(
+    term = exposure_name,
+    increment = increment,
+    IRR = est,
+    CI_low = low,
+    CI_high = high
+  )
+  return(out)
+}
+
+```
+
+```{r}
+## ---------------------------
+## 6. main conditional Poisson models
+## ---------------------------
+## Outcome 1: mental_health
+## Model 1: lag 0 only
+m_mh_lag0 <- gnm(
+  mental_health ~ pm25 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  eliminate = stratum,
+  family = quasipoisson(link = "log"),
+  data = df_cc
+)
+```
+
+```{r}
+## Model 2: lag 0 + lag 1
+m_mh_lag01 <- gnm(
+  mental_health ~ pm25 + pm25_lag1 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  eliminate = stratum,
+  family = quasipoisson(link = "log"),
+  data = df_cc_lag1
+)
+```
+
+```{r}
+
+## Model 3: interaction with heat_day
+m_mh_interaction <- gnm(
+  mental_health ~ pm25 * heat_day + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  eliminate = stratum,
+  family = quasipoisson(link = "log"),
+  data = df_cc
+)
+```
+
+```{r}
+## Outcome 2: suicide
+## Model 4: lag 0 only
+m_su_lag0 <- gnm(
+  suicide ~ pm25 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  eliminate = stratum,
+  family = quasipoisson(link = "log"),
+  data = df_cc
+)
+```
+
+```{r}
+## Model 5: lag 0 + lag 1
+m_su_lag01 <- gnm(
+  suicide ~ pm25 + pm25_lag1 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  eliminate = stratum,
+  family = quasipoisson(link = "log"),
+  data = df_cc_lag1
+)
+```
+
+```{r}
+## ---------------------------
+## 7. optional: two-pollutant-style lag sensitivity
+## ---------------------------
+## This one is optional. Use only if you want one extra robustness check.
+m_mh_lag012 <- gnm(
+  mental_health ~ pm25 + pm25_lag1 + pm25_lag2 +
+    ns(tmean, df = 3) + ns(rh_max, df = 3),
+  eliminate = stratum,
+  family = quasipoisson(link = "log"),
+  data = df_cc_lag2
+)
+```
+
+```{r}
+## ---------------------------
+## 8. model summaries
+## ---------------------------
+cat("\n==============================\n")
+cat("Mental health model: lag 0\n")
+cat("==============================\n")
+print(summary(m_mh_lag0))
+
+cat("\n==============================\n")
+cat("Mental health model: lag 0 + lag 1\n")
+cat("==============================\n")
+print(summary(m_mh_lag01))
+
+cat("\n==============================\n")
+cat("Mental health model: PM2.5 * heat_day\n")
+cat("==============================\n")
+print(summary(m_mh_interaction))
+
+cat("\n==============================\n")
+cat("Suicide model: lag 0\n")
+cat("==============================\n")
+print(summary(m_su_lag0))
+
+cat("\n==============================\n")
+cat("Suicide model: lag 0 + lag 1\n")
+cat("==============================\n")
+print(summary(m_su_lag01))
+
+cat("\n==============================\n")
+cat("Mental health model: lag 0 + lag 1 + lag 2\n")
+cat("==============================\n")
+print(summary(m_mh_lag012))
+```
+
+```{r}
+## ---------------------------
+## 9. IRR tables
+## ---------------------------
+irr_results <- bind_rows(
+  cbind(model = "mental_health_lag0_1ug", get_irr(m_mh_lag0, "pm25", 1)),
+  cbind(model = "mental_health_lag0_5ug", get_irr(m_mh_lag0, "pm25", 5)),
+  cbind(model = "mental_health_lag01_pm25_1ug", get_irr(m_mh_lag01, "pm25", 1)),
+  cbind(model = "mental_health_lag01_pm25lag1_1ug", get_irr(m_mh_lag01, "pm25_lag1", 1)),
+  cbind(model = "suicide_lag0_1ug", get_irr(m_su_lag0, "pm25", 1)),
+  cbind(model = "suicide_lag0_5ug", get_irr(m_su_lag0, "pm25", 5)),
+  cbind(model = "suicide_lag01_pm25_1ug", get_irr(m_su_lag01, "pm25", 1)),
+  cbind(model = "suicide_lag01_pm25lag1_1ug", get_irr(m_su_lag01, "pm25_lag1", 1))
+)
+
+cat("\n==============================\n")
+cat("IRR results\n")
+cat("==============================\n")
+print(irr_results)
+
+```
+
+```{r}
+
+## ---------------------------
+## 10. save outputs
+## ---------------------------
+if (!dir.exists("results")) dir.create("results")
+
+write.csv(
+  irr_results,
+  "results/case_crossover_irr_results.csv",
+  row.names = FALSE
+)
+
+saveRDS(m_mh_lag0, "results/m_mh_lag0.rds")
+saveRDS(m_mh_lag01, "results/m_mh_lag01.rds")
+saveRDS(m_mh_interaction, "results/m_mh_interaction.rds")
+saveRDS(m_su_lag0, "results/m_su_lag0.rds")
+saveRDS(m_su_lag01, "results/m_su_lag01.rds")
+saveRDS(m_mh_lag012, "results/m_mh_lag012.rds")
+
+cat("\nSaved model outputs to /results folder.\n")
+```
+
+```{r}
+## ---------------------------
+## 11. optional compact coefficient table
+## ---------------------------
+coef_table <- bind_rows(
+  tidy(m_mh_lag0) %>% mutate(model = "m_mh_lag0"),
+  tidy(m_mh_lag01) %>% mutate(model = "m_mh_lag01"),
+  tidy(m_mh_interaction) %>% mutate(model = "m_mh_interaction"),
+  tidy(m_su_lag0) %>% mutate(model = "m_su_lag0"),
+  tidy(m_su_lag01) %>% mutate(model = "m_su_lag01"),
+  tidy(m_mh_lag012) %>% mutate(model = "m_mh_lag012")
+)
+
+write.csv(
+  coef_table,
+  "results/case_crossover_coef_table.csv",
+  row.names = FALSE
+)
+
+cat("Saved coefficient table.\n")
+```
+
