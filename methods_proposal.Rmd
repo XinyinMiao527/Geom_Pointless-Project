@@ -67,7 +67,31 @@ where $Y_t \sim \text{Quasi-Poisson}$. Same structure for both outcomes (mental_
 | Case-crossover | Teresa Sha | — |
 | Nonlinear analysis | Xinyin Miao | in progress |
 
+## Borough-level Mixed-Effects Analysis — analysis plan (Zichen Fan)
 
+### Model
+$$
+\log(\mu_{it}) = (\beta_0 + b_{0i}) + (\beta_1 + b_{1i}) \cdot \text{PM2.5.scaled}_{it} + \text{ns}(\text{time}_t, 4) + \text{ns}(\text{tmean.scaled}_{it}, 3) + \beta_2 \cdot \text{is\_weekend}_t + \beta_3 \cdot \text{precip}_t
+$$
+$i$ denotes the borough, $t$ denotes the day.
+$b_{0i}$: Borough-specific random intercept (baseline call volume).
+$b_{1i}$: Borough-specific random slope (deviation from the average PM2.5 effect).
+
+### Covariates selection
+
+- **Random Intercept (1 | Borough)** : It controls for time-invariant confounding by borough,represents baseline risk for EMS calls.
+
+- **Random Slope (PM2.5.scaled | Borough)** : Allows the association between PM2.5 and EMS calls to vary across NYC boroughs. This accounts for potential differences in vulnerability due to localized socioeconomic factors or underlying health disparities.
+
+- **Borough-specific PM2.5 & Temp**: Unlike the city-wide average models, this model utilizes localized exposure data from monitors within each specific borough for higher precision.
+
+### R packages
+`glmmTMB`(multilevel modeling), `splines`(ns), `ggplot2`(figures).
+
+### Analysis goals
+- Assessing Effect Heterogeneity: To validate if the PM2.5-mental health association remains consistent after controlling for time-invariant spatial confounding.And see if certain boroughs show significantly higher sensitivity.
+
+- LRT Model Comparison: Use the Likelihood Ratio Test (anova) to compare the Random Slope model against the Random Intercept model, testing if the added complexity significantly improves model fit.
 
 ## Nonlinear exposure–response analysis — analysis plan (Xinyin Miao)
 
