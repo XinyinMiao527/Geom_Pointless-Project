@@ -15,6 +15,15 @@ This motivates a quasi-Poisson time series GLM — it handles overdispersed coun
 
 We plan to do a nonlinear exposure–response analysis within the quasi-Poisson time-series framework. By replacing the linear PM2.5 term with a spline function, we can evaluate whether the association is approximately linear, whether there is evidence of a threshold, and whether the slope becomes steeper at higher PM2.5 concentrations.
 
+## Team assignments
+
+| Method | Person | Status |
+|--------|--------|--------|
+| Quasi-Poisson GLM | Yiming Cao | in progress |
+| Mixed Model | Zichen Fan | in progress |
+| Case-crossover | Teresa Sha | in progress |
+| Nonlinear analysis | Xinyin Miao | in progress |
+
 ## Quasi-Poisson GLM — analysis plan (Yiming Cao)
 
 ### Model
@@ -58,14 +67,6 @@ where $Y_t \sim \text{Quasi-Poisson}$. Same structure for both outcomes (mental_
 - Results as rate ratio per 10 μg/m³ PM2.5 increase with 95% CIs
 - Sensitivity: time trend df (3–6), excluded wildfire days, lagged temperature
 
-## Team assignments
-
-| Method | Person | Status |
-|--------|--------|--------|
-| Quasi-Poisson GLM | Yiming Cao | in progress |
-| Mixed Model | Zichen Fan | — |
-| Case-crossover | Teresa Sha | — |
-| Nonlinear analysis | Xinyin Miao | in progress |
 
 ## Borough-level Mixed-Effects Analysis — analysis plan (Zichen Fan)
 
@@ -92,81 +93,6 @@ $b_{1i}$: Borough-specific random slope (deviation from the average PM2.5 effect
 - Assessing Effect Heterogeneity: To validate if the PM2.5-mental health association remains consistent after controlling for time-invariant spatial confounding.And see if certain boroughs show significantly higher sensitivity.
 
 - LRT Model Comparison: Use the Likelihood Ratio Test (anova) to compare the Random Slope model against the Random Intercept model, testing if the added complexity significantly improves model fit.
-
-## Nonlinear exposure–response analysis — analysis plan (Xinyin Miao)
-
-
-### Model
-
-Primary nonlinear model:
-
-$$
-\log(\mu_t) = \beta_0 + \operatorname{ns}(\mathrm{PM}_{2.5,t}, 3) + \operatorname{ns}(\mathrm{time}_t, 4) + \operatorname{ns}(\mathrm{tmean}_t, 3) 
-+ \beta_1 \cdot \mathrm{is\_weekend}_t + \beta_2 \cdot \mathrm{precip}_t
-$$
-
-where
-$$
-Y_t \sim \text{Quasi-Poisson}, \qquad \mu_t = E(Y_t).
-$$
-
-For comparison, the linear specification from the primary model will also be fit:
-
-$$
-\log(\mu_t) = \beta_0 + \beta_1 \cdot \mathrm{PM}_{2.5,t}
-+ \operatorname{ns}(\mathrm{time}_t, 4)
-+ \operatorname{ns}(\mathrm{tmean}_t, 3)
-+ \beta_2 \cdot \mathrm{is\_weekend}_t
-+ \beta_3 \cdot \mathrm{precip}_t
-$$
-
-
-### Covariate selection
-
-- **ns(PM2.5, 3)**: natural spline for PM2.5 to allow a flexible exposure–response curve.
-- **ns(time, 4)**: natural spline to control for seasonal and long-term temporal patterns observed in the EDA.
-- **ns(tmean, 3)**: nonlinear temperature adjustment, since EDA suggested a curved temperature–outcome relationship.
-- **is_weekend**: binary weekend indicator to account for the clear weekday/weekend pattern in call volume while conserving degrees of freedom.
-- **precip**: linear adjustment for precipitation as a nuisance weather covariate that may affect both ambient conditions and human activity patterns.
-
-### R packages
-
-`stats` (glm), `splines` (ns), `ggplot2` (figures).
-
-### Analysis goals
-
-- Evaluate whether the PM2.5–outcome association departs from linearity.
-- Visualize the exposure–response curve for PM2.5 after adjustment for temporal trend, temperature, weekend, and precipitation.
-- Assess whether there is evidence of a threshold effect; a steeper slope at higher PM2.5 concentrations; little change across the lower exposure range.
-- Compare the nonlinear PM2.5 model with the linear PM2.5 model to determine whether allowing nonlinearity meaningfully changes interpretation.
-
-### Sensitivity analyses
-
-- Vary PM2.5 spline complexity from df = 3 to df = 4 to assess whether the estimated curve shape is robust
-- Exclude high-PM2.5 days (>95th percentile) that may reflect wildfire smoke episodes and evaluate whether the nonlinear shape is driven by a few extreme observations
-- Repeat the nonlinear model for both outcomes and compare whether the curve is more stable for mental_health than for suicide-related calls
-- As an additional check, refit the nonlinear PM2.5 model under alternative time-trend df choices (3–6) to confirm that the exposure–response shape is not overly sensitive to temporal adjustment
-
-### Expected visualizations
-
-- Exposure–response curve for PM2.5 with 95% confidence intervals, shown on the rate ratio scale relative to a reference PM2.5 value
-- Overlay plot comparing the fitted linear and nonlinear PM2.5 relationships
-- Sensitivity plot showing how the PM2.5 curve changes under alternative spline df choices or after excluding extreme high-exposure days
-- Distribution plot of PM2.5 values to show where the data are dense versus sparse, helping interpret uncertainty in the tails of the curve
-
-### Methods section outline
-
-- Nonlinear exposure–response analysis conducted within a quasi-Poisson time-series framework to evaluate whether the association between same-day PM2.5 and EMS call counts is nonlinear
-- Primary outcome: daily mental health crisis calls (EDP + ALTMEN); secondary outcome: suicide-related calls (JUMPDN + JUMPUP)
-- Exposure modeled using a natural spline for city-wide mean PM2.5
-- Adjusted for: seasonal/long-term trend (natural spline for time, 4 df), temperature (natural spline, 3 df), weekend indicator, and precipitation
-- Linear and nonlinear PM2.5 specifications compared to assess departure from linearity
-- Results presented as adjusted exposure–response curves and rate ratios relative to a reference PM2.5 concentration
-- Sensitivity analyses: PM2.5 spline df (3–4), alternative time-trend df (3–6), exclusion of extreme high-PM2.5 days
-
-
-
-
 
 
 ## Case-crossover sensitivity analysis — analysis plan (Teresa Sha)
@@ -254,6 +180,76 @@ This analysis will not serve as the primary design. Instead, it will be used as 
 - Additional models will assess **lag 1 PM2.5** and **interaction with heat-day status**.
 - Findings from this sensitivity analysis will be compared with the primary time-series analysis to assess robustness.
 
+## Nonlinear exposure–response analysis — analysis plan (Xinyin Miao)
+
+
+### Model
+
+Primary nonlinear model:
+
+$$
+\log(\mu_t) = \beta_0 + \operatorname{ns}(\mathrm{PM}_{2.5,t}, 3) + \operatorname{ns}(\mathrm{time}_t, 4) + \operatorname{ns}(\mathrm{tmean}_t, 3) 
++ \beta_1 \cdot \mathrm{is\_weekend}_t + \beta_2 \cdot \mathrm{precip}_t
+$$
+
+where
+$$
+Y_t \sim \text{Quasi-Poisson}, \qquad \mu_t = E(Y_t).
+$$
+
+For comparison, the linear specification from the primary model will also be fit:
+
+$$
+\log(\mu_t) = \beta_0 + \beta_1 \cdot \mathrm{PM}_{2.5,t}
++ \operatorname{ns}(\mathrm{time}_t, 4)
++ \operatorname{ns}(\mathrm{tmean}_t, 3)
++ \beta_2 \cdot \mathrm{is\_weekend}_t
++ \beta_3 \cdot \mathrm{precip}_t
+$$
+
+
+### Covariate selection
+
+- **ns(PM2.5, 3)**: natural spline for PM2.5 to allow a flexible exposure–response curve.
+- **ns(time, 4)**: natural spline to control for seasonal and long-term temporal patterns observed in the EDA.
+- **ns(tmean, 3)**: nonlinear temperature adjustment, since EDA suggested a curved temperature–outcome relationship.
+- **is_weekend**: binary weekend indicator to account for the clear weekday/weekend pattern in call volume while conserving degrees of freedom.
+- **precip**: linear adjustment for precipitation as a nuisance weather covariate that may affect both ambient conditions and human activity patterns.
+
+### R packages
+
+`stats` (glm), `splines` (ns), `ggplot2` (figures).
+
+### Analysis goals
+
+- Evaluate whether the PM2.5–outcome association departs from linearity.
+- Visualize the exposure–response curve for PM2.5 after adjustment for temporal trend, temperature, weekend, and precipitation.
+- Assess whether there is evidence of a threshold effect; a steeper slope at higher PM2.5 concentrations; little change across the lower exposure range.
+- Compare the nonlinear PM2.5 model with the linear PM2.5 model to determine whether allowing nonlinearity meaningfully changes interpretation.
+
+### Sensitivity analyses
+
+- Vary PM2.5 spline complexity from df = 3 to df = 4 to assess whether the estimated curve shape is robust
+- Exclude high-PM2.5 days (>95th percentile) that may reflect wildfire smoke episodes and evaluate whether the nonlinear shape is driven by a few extreme observations
+- Repeat the nonlinear model for both outcomes and compare whether the curve is more stable for mental_health than for suicide-related calls
+- As an additional check, refit the nonlinear PM2.5 model under alternative time-trend df choices (3–6) to confirm that the exposure–response shape is not overly sensitive to temporal adjustment
+
+### Expected visualizations
+
+- Exposure–response curve for PM2.5 with 95% confidence intervals, shown on the rate ratio scale relative to a reference PM2.5 value
+- Overlay plot comparing the fitted linear and nonlinear PM2.5 relationships
+- Sensitivity plot showing how the PM2.5 curve changes under alternative spline df choices or after excluding extreme high-exposure days
+- Distribution plot of PM2.5 values to show where the data are dense versus sparse, helping interpret uncertainty in the tails of the curve
+
+### Methods section outline
+
+- Nonlinear exposure–response analysis conducted within a quasi-Poisson time-series framework to evaluate whether the association between same-day PM2.5 and EMS call counts is nonlinear
+- Primary outcome: daily mental health crisis calls (EDP + ALTMEN); secondary outcome: suicide-related calls (JUMPDN + JUMPUP)
+- Exposure modeled using a natural spline for city-wide mean PM2.5
+- Adjusted for: seasonal/long-term trend (natural spline for time, 4 df), temperature (natural spline, 3 df), weekend indicator, and precipitation
+- Linear and nonlinear PM2.5 specifications compared to assess departure from linearity
+- Results presented as adjusted exposure–response curves and rate ratios relative to a reference PM2.5 concentration
+- Sensitivity analyses: PM2.5 spline df (3–4), alternative time-trend df (3–6), exclusion of extreme high-PM2.5 days
 
 
 
