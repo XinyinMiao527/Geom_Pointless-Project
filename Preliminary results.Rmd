@@ -1,0 +1,612 @@
+---
+title: "Preliminary results"
+author: "Yiming Cao, Zichen Fan, Xinyin Miao, Teresa Sha"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+
+# Nonlinear Exposure--Response Analysis (Xinyin Miao)
+
+## Load packages
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(splines)
+library(lubridate)
+library(purrr)
+library(tidyr)
+```
+
+## Read and prepare data
+
+```{r}
+df <- read.csv("data/analysis_2024.csv") |>
+  mutate(
+    date = as.Date(date),
+    time = seq_len(n()),
+    month_name = factor(month(date, label = TRUE, abbr = TRUE),
+                        levels = month.abb),
+    season = case_when(
+      month(date) %in% c(12, 1, 2) ~ "Winter",
+      month(date) %in% c(3, 4, 5)  ~ "Spring",
+      month(date) %in% c(6, 7, 8)  ~ "Summer",
+      TRUE                         ~ "Fall"
+    ) |> factor(levels = c("Winter", "Spring", "Summer", "Fall")),
+    weekday_name = factor(
+      weekdays(date),
+      levels = c("Monday", "Tuesday", "Wednesday",
+                 "Thursday", "Friday", "Saturday", "Sunday")
+    ),
+    is_weekend = as.numeric(is_weekend)
+  )
+
+str(df)
+summary(df[, c("pm25", "mental_health", "suicide", "tmean", "precip", "is_weekend")])
+```
+
+## Model specification
+
+Primary nonlinear model:
+
+$$
+\log(\mu_t) = \beta_0 + \operatorname{ns}(\mathrm{PM}_{2.5,t}, 3)
++ \operatorname{ns}(\mathrm{time}_t, 4)
++ \operatorname{ns}(\mathrm{tmean}_t, 3)
++ \beta_1 \cdot \mathrm{is\_weekend}_t
++ \beta_2 \cdot \mathrm{precip}_t
+$$
+
+where
+
+$$
+Y_t \sim \text{Quasi-Poisson}, \qquad \mu_t = E(Y_t).
+$$
+
+For comparison, the linear specification is:
+
+$$
+\log(\mu_t) = \beta_0 + \beta_1 \cdot \mathrm{PM}_{2.5,t}
++ \operatorname{ns}(\mathrm{time}_t, 4)
++ \operatorname{ns}(\mathrm{tmean}_t, 3)
++ \beta_2 \cdot \mathrm{is\_weekend}_t
++ \beta_3 \cdot \mathrm{precip}_t
+$$
+
+## Fit linear and nonlinear models
+
+### Mental health outcome
+
+```{r}
+fit_mh_linear <- glm(
+  mental_health ~ pm25 + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  family = quasipoisson(link = "log"),
+  data = df
+)
+
+fit_mh_nonlinear <- glm(
+  mental_health ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  family = quasipoisson(link = "log"),
+  data = df
+)
+
+summary(fit_mh_linear)
+summary(fit_mh_nonlinear)
+```
+
+### Suicide outcome
+
+```{r}
+fit_sui_linear <- glm(
+  suicide ~ pm25 + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  family = quasipoisson(link = "log"),
+  data = df
+)
+
+fit_sui_nonlinear <- glm(
+  suicide ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  family = quasipoisson(link = "log"),
+  data = df
+)
+
+summary(fit_sui_linear)
+summary(fit_sui_nonlinear)
+```
+
+## Model comparison
+
+```{r}
+model_compare <- data.frame(
+  Model = c("MH linear", "MH nonlinear", "Suicide linear", "Suicide nonlinear"),
+  Residual_Deviance = c(
+    fit_mh_linear$deviance,
+    fit_mh_nonlinear$deviance,
+    fit_sui_linear$deviance,
+    fit_sui_nonlinear$deviance
+  ),
+  DF_Residual = c(
+    fit_mh_linear$df.residual,
+    fit_mh_nonlinear$df.residual,
+    fit_sui_linear$df.residual,
+    fit_sui_nonlinear$df.residual
+  ),
+  Dispersion = c(
+    summary(fit_mh_linear)$dispersion,
+    summary(fit_mh_nonlinear)$dispersion,
+    summary(fit_sui_linear)$dispersion,
+    summary(fit_sui_nonlinear)$dispersion
+  )
+)
+
+model_compare
+```
+
+```{r}
+drop1(fit_mh_nonlinear, test = "F")
+drop1(fit_sui_nonlinear, test = "F")
+```
+
+## Rate ratio per 10 \mu g/m^3 for linear model
+
+```{r}
+get_rr10 <- function(model, var = "pm25") {
+  beta <- coef(model)[var]
+  se   <- sqrt(vcov(model)[var, var])
+
+  rr    <- exp(beta * 10)
+  lower <- exp((beta - 1.96 * se) * 10)
+  upper <- exp((beta + 1.96 * se) * 10)
+
+  data.frame(
+    term = var,
+    beta = beta,
+    RR_10 = rr,
+    lower_95 = lower,
+    upper_95 = upper
+  )
+}
+
+rr_mh_linear  <- get_rr10(fit_mh_linear, "pm25")
+rr_sui_linear <- get_rr10(fit_sui_linear, "pm25")
+
+rr_mh_linear
+rr_sui_linear
+```
+
+## Create exposure--response curve function
+
+```{r}
+make_er_curve <- function(model, data, outcome_name,
+                          pm_var = "pm25",
+                          ref_value = median(data[[pm_var]], na.rm = TRUE),
+                          n_points = 200) {
+
+  pm_seq <- seq(min(data[[pm_var]], na.rm = TRUE),
+                max(data[[pm_var]], na.rm = TRUE),
+                length.out = n_points)
+
+  newdata <- data.frame(
+    pm25 = pm_seq,
+    time = median(data$time, na.rm = TRUE),
+    tmean = median(data$tmean, na.rm = TRUE),
+    is_weekend = 0,
+    precip = median(data$precip, na.rm = TRUE)
+  )
+
+  refdata <- newdata[1, ]
+  refdata$pm25 <- ref_value
+
+  X_new <- model.matrix(delete.response(terms(model)), newdata)
+  X_ref <- model.matrix(delete.response(terms(model)), refdata)
+
+  beta <- coef(model)
+  V    <- vcov(model)
+
+  diff_mat <- X_new - matrix(X_ref, nrow = nrow(X_new), ncol = ncol(X_new), byrow = TRUE)
+
+  eta_diff <- as.vector(diff_mat %*% beta)
+  se_diff  <- sqrt(diag(diff_mat %*% V %*% t(diff_mat)))
+
+  data.frame(
+    pm25 = pm_seq,
+    RR = exp(eta_diff),
+    lower = exp(eta_diff - 1.96 * se_diff),
+    upper = exp(eta_diff + 1.96 * se_diff),
+    outcome = outcome_name,
+    ref_value = ref_value
+  )
+}
+
+make_linear_curve <- function(model, data, outcome_name,
+                              pm_var = "pm25",
+                              ref_value = median(data[[pm_var]], na.rm = TRUE),
+                              n_points = 200) {
+
+  pm_seq <- seq(min(data[[pm_var]], na.rm = TRUE),
+                max(data[[pm_var]], na.rm = TRUE),
+                length.out = n_points)
+
+  beta <- coef(model)["pm25"]
+  se   <- sqrt(vcov(model)["pm25", "pm25"])
+
+  eta_diff <- beta * (pm_seq - ref_value)
+  se_diff  <- abs(pm_seq - ref_value) * se
+
+  data.frame(
+    pm25 = pm_seq,
+    RR = exp(eta_diff),
+    lower = exp(eta_diff - 1.96 * se_diff),
+    upper = exp(eta_diff + 1.96 * se_diff),
+    outcome = outcome_name,
+    model_type = "Linear"
+  )
+}
+```
+
+## Generate exposure--response curves
+
+```{r}
+curve_mh  <- make_er_curve(fit_mh_nonlinear, df, "Mental health")
+curve_sui <- make_er_curve(fit_sui_nonlinear, df, "Suicide")
+```
+
+## Plot nonlinear exposure--response curves
+
+```{r fig.width=8, fig.height=5}
+ggplot(curve_mh, aes(x = pm25, y = RR)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2, color = "gray40") +
+  labs(
+    title = "PM2.5 exposure-response curve: Mental health EMS calls",
+    subtitle = paste0("Reference PM2.5 = ", round(unique(curve_mh$ref_value), 2), " \u03bcg/m^3"),
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio"
+  ) +
+  theme_bw()
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(curve_sui, aes(x = pm25, y = RR)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2, color = "gray40") +
+  labs(
+    title = "PM2.5 exposure-response curve: Suicide-related EMS calls",
+    subtitle = paste0("Reference PM2.5 = ", round(unique(curve_sui$ref_value), 2), " \u03bcg/m^3"),
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio"
+  ) +
+  theme_bw()
+```
+
+## Compare linear vs nonlinear PM2.5 specification
+
+```{r}
+curve_mh_linear  <- make_linear_curve(fit_mh_linear, df, "Mental health")
+curve_sui_linear <- make_linear_curve(fit_sui_linear, df, "Suicide")
+
+curve_mh_nl_plot  <- curve_mh  |> mutate(model_type = "Nonlinear")
+curve_sui_nl_plot <- curve_sui |> mutate(model_type = "Nonlinear")
+
+curve_compare_mh  <- bind_rows(curve_mh_linear, curve_mh_nl_plot)
+curve_compare_sui <- bind_rows(curve_sui_linear, curve_sui_nl_plot)
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(curve_compare_mh, aes(x = pm25, y = RR, color = model_type)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2, color = "gray40") +
+  labs(
+    title = "Linear vs nonlinear PM2.5 relationship: Mental health calls",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio",
+    color = "Model"
+  ) +
+  theme_bw()
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(curve_compare_sui, aes(x = pm25, y = RR, color = model_type)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2, color = "gray40") +
+  labs(
+    title = "Linear vs nonlinear PM2.5 relationship: Suicide-related calls",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio",
+    color = "Model"
+  ) +
+  theme_bw()
+```
+
+## Distribution of PM2.5
+
+```{r fig.width=7, fig.height=4.5}
+ggplot(df, aes(x = pm25)) +
+  geom_histogram(bins = 20, fill = "gray70", color = "white") +
+  geom_vline(xintercept = median(df$pm25, na.rm = TRUE), linetype = 2, color = "red") +
+  labs(
+    title = "Distribution of PM2.5 in analysis sample",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Count of observation days"
+  ) +
+  theme_bw()
+```
+
+## Residual diagnostics
+
+```{r fig.width=7, fig.height=4.5}
+diag_mh <- data.frame(
+  fitted = fitted(fit_mh_nonlinear),
+  resid  = residuals(fit_mh_nonlinear, type = "deviance")
+)
+
+ggplot(diag_mh, aes(fitted, resid)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = 2, color = "gray40") +
+  labs(
+    title = "Deviance residuals vs fitted: Mental health nonlinear model",
+    x = "Fitted values",
+    y = "Deviance residuals"
+  ) +
+  theme_bw()
+```
+
+```{r fig.width=7, fig.height=4.5}
+diag_sui <- data.frame(
+  fitted = fitted(fit_sui_nonlinear),
+  resid  = residuals(fit_sui_nonlinear, type = "deviance")
+)
+
+ggplot(diag_sui, aes(fitted, resid)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = 2, color = "gray40") +
+  labs(
+    title = "Deviance residuals vs fitted: Suicide nonlinear model",
+    x = "Fitted values",
+    y = "Deviance residuals"
+  ) +
+  theme_bw()
+```
+
+```{r}
+pacf(
+  residuals(fit_mh_nonlinear, type = "pearson"),
+  main = "PACF of Pearson residuals: Mental health nonlinear model"
+)
+
+pacf(
+  residuals(fit_sui_nonlinear, type = "pearson"),
+  main = "PACF of Pearson residuals: Suicide nonlinear model"
+)
+```
+
+## Sensitivity analysis 1: PM2.5 spline df = 4
+
+```{r}
+fit_mh_nonlinear_df4 <- glm(
+  mental_health ~ ns(pm25, 4) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  family = quasipoisson(link = "log"),
+  data = df
+)
+
+fit_sui_nonlinear_df4 <- glm(
+  suicide ~ ns(pm25, 4) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  family = quasipoisson(link = "log"),
+  data = df
+)
+
+curve_mh_df4  <- make_er_curve(fit_mh_nonlinear_df4, df, "Mental health") |> mutate(df_pm = "df = 4")
+curve_sui_df4 <- make_er_curve(fit_sui_nonlinear_df4, df, "Suicide") |> mutate(df_pm = "df = 4")
+
+curve_mh_df3  <- curve_mh  |> mutate(df_pm = "df = 3")
+curve_sui_df3 <- curve_sui |> mutate(df_pm = "df = 3")
+
+curve_mh_sens  <- bind_rows(curve_mh_df3, curve_mh_df4)
+curve_sui_sens <- bind_rows(curve_sui_df3, curve_sui_df4)
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(curve_mh_sens, aes(pm25, RR, color = df_pm)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2) +
+  labs(
+    title = "Sensitivity to PM2.5 spline df: Mental health",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio",
+    color = "PM2.5 spline"
+  ) +
+  theme_bw()
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(curve_sui_sens, aes(pm25, RR, color = df_pm)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2) +
+  labs(
+    title = "Sensitivity to PM2.5 spline df: Suicide",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio",
+    color = "PM2.5 spline"
+  ) +
+  theme_bw()
+```
+
+## Sensitivity analysis 2: exclude high PM2.5 days
+
+```{r}
+pm95 <- quantile(df$pm25, 0.95, na.rm = TRUE)
+
+df_no_high <- df |> filter(pm25 <= pm95)
+
+fit_mh_no_high <- glm(
+  mental_health ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  family = quasipoisson(link = "log"),
+  data = df_no_high
+)
+
+fit_sui_no_high <- glm(
+  suicide ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  family = quasipoisson(link = "log"),
+  data = df_no_high
+)
+
+curve_mh_no_high <- make_er_curve(fit_mh_no_high, df_no_high, "Mental health") |>
+  mutate(sample = "Exclude >95th percentile")
+
+curve_sui_no_high <- make_er_curve(fit_sui_no_high, df_no_high, "Suicide") |>
+  mutate(sample = "Exclude >95th percentile")
+
+curve_mh_main <- curve_mh |> mutate(sample = "Main sample")
+curve_sui_main <- curve_sui |> mutate(sample = "Main sample")
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(bind_rows(curve_mh_main, curve_mh_no_high), aes(pm25, RR, color = sample)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2) +
+  labs(
+    title = "Sensitivity to extreme PM2.5 days: Mental health",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio"
+  ) +
+  theme_bw()
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(bind_rows(curve_sui_main, curve_sui_no_high), aes(pm25, RR, color = sample)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2) +
+  labs(
+    title = "Sensitivity to extreme PM2.5 days: Suicide",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio"
+  ) +
+  theme_bw()
+```
+
+## Sensitivity analysis 3: alternative time-trend df (3--6)
+
+```{r}
+fit_time_sensitivity <- function(outcome, time_df, data) {
+  form <- as.formula(
+    paste0(outcome,
+           " ~ ns(pm25, 3) + ns(time, ", time_df, ") + ns(tmean, 3) + is_weekend + precip")
+  )
+
+  glm(form, family = quasipoisson(link = "log"), data = data)
+}
+
+time_df_results_mh <- map_df(3:6, function(k) {
+  mod <- fit_time_sensitivity("mental_health", k, df)
+  curve <- make_er_curve(mod, df, "Mental health")
+  curve$time_df <- paste0("time df = ", k)
+  curve
+})
+
+time_df_results_sui <- map_df(3:6, function(k) {
+  mod <- fit_time_sensitivity("suicide", k, df)
+  curve <- make_er_curve(mod, df, "Suicide")
+  curve$time_df <- paste0("time df = ", k)
+  curve
+})
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(time_df_results_mh, aes(pm25, RR, color = time_df)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2) +
+  labs(
+    title = "Sensitivity to time-trend df: Mental health",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio",
+    color = "Time spline"
+  ) +
+  theme_bw()
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(time_df_results_sui, aes(pm25, RR, color = time_df)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2) +
+  labs(
+    title = "Sensitivity to time-trend df: Suicide",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio",
+    color = "Time spline"
+  ) +
+  theme_bw()
+```
+
+## Sensitivity analysis 4: nonlinear precipitation
+
+```{r}
+fit_mh_nl_precip <- glm(
+  mental_health ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + ns(precip, 3),
+  family = quasipoisson(link = "log"),
+  data = df
+)
+
+fit_sui_nl_precip <- glm(
+  suicide ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + ns(precip, 3),
+  family = quasipoisson(link = "log"),
+  data = df
+)
+
+curve_mh_nl_precip <- make_er_curve(fit_mh_nl_precip, df, "Mental health") |>
+  mutate(model = "Nonlinear precip")
+
+curve_sui_nl_precip <- make_er_curve(fit_sui_nl_precip, df, "Suicide") |>
+  mutate(model = "Nonlinear precip")
+
+curve_mh_main2 <- curve_mh |> mutate(model = "Linear precip")
+curve_sui_main2 <- curve_sui |> mutate(model = "Linear precip")
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(bind_rows(curve_mh_main2, curve_mh_nl_precip), aes(pm25, RR, color = model)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2) +
+  labs(
+    title = "Sensitivity to precipitation functional form: Mental health",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio"
+  ) +
+  theme_bw()
+```
+
+```{r fig.width=8, fig.height=5}
+ggplot(bind_rows(curve_sui_main2, curve_sui_nl_precip), aes(pm25, RR, color = model)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = 2) +
+  labs(
+    title = "Sensitivity to precipitation functional form: Suicide",
+    x = "PM2.5 (\u03bcg/m^3)",
+    y = "Rate ratio"
+  ) +
+  theme_bw()
+```
+
+## Summary table
+
+```{r}
+results_summary <- bind_rows(
+  rr_mh_linear  |> mutate(outcome = "mental_health"),
+  rr_sui_linear |> mutate(outcome = "suicide")
+) |>
+  select(outcome, RR_10, lower_95, upper_95)
+
+results_summary
+```
+
