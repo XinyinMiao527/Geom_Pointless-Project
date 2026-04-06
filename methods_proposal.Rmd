@@ -214,7 +214,7 @@ $$
 - **ns(time, 4)**: natural spline to control for seasonal and long-term temporal patterns observed in the EDA.
 - **ns(tmean, 3)**: nonlinear temperature adjustment, since EDA suggested a curved temperature–outcome relationship.
 - **is_weekend**: binary weekend indicator to account for the clear weekday/weekend pattern in call volume while conserving degrees of freedom.
-- **precip**: linear adjustment for precipitation as a nuisance weather covariate that may affect both ambient conditions and human activity patterns.
+- **precip**: linear adjustment for precipitation as a nuisance weather covariate that may affect both ambient conditions and human activity patterns. Because the association between precipitation and EMS activity may also be nonlinear, an alternative spline specification for precipitation will be evaluated in sensitivity analyses.
 
 ### R packages
 
@@ -233,6 +233,7 @@ $$
 - Exclude high-PM2.5 days (>95th percentile) that may reflect wildfire smoke episodes and evaluate whether the nonlinear shape is driven by a few extreme observations
 - Repeat the nonlinear model for both outcomes and compare whether the curve is more stable for mental_health than for suicide-related calls
 - As an additional check, refit the nonlinear PM2.5 model under alternative time-trend df choices (3–6) to confirm that the exposure–response shape is not overly sensitive to temporal adjustment
+- Replace the linear precipitation term with a natural spline for precipitation, **ns(precip, 3)**, to assess whether the estimated PM2.5 exposure–response curve is sensitive to how precipitation is modeled
 
 ### Expected visualizations
 
@@ -249,8 +250,7 @@ $$
 - Adjusted for: seasonal/long-term trend (natural spline for time, 4 df), temperature (natural spline, 3 df), weekend indicator, and precipitation
 - Linear and nonlinear PM2.5 specifications compared to assess departure from linearity
 - Results presented as adjusted exposure–response curves and rate ratios relative to a reference PM2.5 concentration
-- Sensitivity analyses: PM2.5 spline df (3–4), alternative time-trend df (3–6), exclusion of extreme high-PM2.5 days
-
+- Sensitivity analyses: PM2.5 spline df (3–4), alternative time-trend df (3–6), exclusion of extreme high-PM2.5 days, and nonlinear adjustment for precipitation
 
 
 
