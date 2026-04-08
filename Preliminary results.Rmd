@@ -610,3 +610,213 @@ results_summary <- bind_rows(
 results_summary
 ```
 
+
+# Quasi-Poisson Time Series GLM (Yiming Cao)
+
+## Model fitting
+
+Using the same data loaded above. The main model keeps PM2.5 as a linear exposure term — the goal here is to estimate the rate ratio per 10 μg/m³ increase, adjusting for seasonal trend, temperature, weekend effect, and precipitation.
+
+```{r}
+library(splines)
+
+# time variable as days since Jan 1
+df$time_days <- as.numeric(df$date - min(df$date))
+
+# mental health model
+fit_qp_mh <- glm(mental_health ~ pm25 + ns(time_days, 4) + ns(tmean, 3) +
+                    is_weekend + precip,
+                  family = quasipoisson(link = "log"),
+                  data = df)
+
+# suicide model
+fit_qp_sui <- glm(suicide ~ pm25 + ns(time_days, 4) + ns(tmean, 3) +
+                     is_weekend + precip,
+                   family = quasipoisson(link = "log"),
+                   data = df)
+```
+
+```{r}
+summary(fit_qp_mh)
+```
+
+```{r}
+summary(fit_qp_sui)
+```
+
+## Dispersion check
+
+```{r}
+cat("Mental health dispersion:", round(summary(fit_qp_mh)$dispersion, 2), "\n")
+cat("Suicide dispersion:", round(summary(fit_qp_sui)$dispersion, 2), "\n")
+```
+
+## Rate ratios per 10 μg/m³ PM2.5
+
+```{r}
+extract_rr <- function(model, label) {
+  b <- coef(model)["pm25"]
+  se <- sqrt(vcov(model)["pm25", "pm25"])
+  data.frame(
+    outcome = label,
+    RR = exp(b * 10),
+    lower = exp((b - 1.96 * se) * 10),
+    upper = exp((b + 1.96 * se) * 10),
+    p = summary(model)$coefficients["pm25", 4]
+  )
+}
+
+rr_table <- rbind(
+  extract_rr(fit_qp_mh, "Mental health"),
+  extract_rr(fit_qp_sui, "Suicide")
+)
+rr_table$RR <- round(rr_table$RR, 3)
+rr_table$lower <- round(rr_table$lower, 3)
+rr_table$upper <- round(rr_table$upper, 3)
+rr_table$p <- round(rr_table$p, 3)
+rr_table
+```
+
+## Rate ratio forest plot
+
+```{r fig.width=7, fig.height=3.5}
+ggplot(rr_table, aes(x = RR, y = outcome)) +
+  geom_point(size = 3) +
+  geom_errorbarh(aes(xmin = lower, xmax = upper), height = 0.15) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray40") +
+  labs(x = "Rate ratio per 10 μg/m³ PM2.5", y = NULL,
+       title = "PM2.5 association with EMS outcomes (Quasi-Poisson GLM)") +
+  theme_bw(base_size = 11)
+```
+
+## Sensitivity analysis: time trend df (3–6)
+
+```{r}
+sens_df <- data.frame()
+for (d in 3:6) {
+  fit_tmp <- glm(mental_health ~ pm25 + ns(time_days, d) + ns(tmean, 3) +
+                   is_weekend + precip,
+                 family = quasipoisson, data = df)
+  b <- coef(fit_tmp)["pm25"]
+  se <- sqrt(vcov(fit_tmp)["pm25", "pm25"])
+
+  sens_df <- rbind(sens_df, data.frame(
+    df_time = d,
+    outcome = "Mental health",
+    RR = exp(b * 10),
+    lower = exp((b - 1.96 * se) * 10),
+    upper = exp((b + 1.96 * se) * 10)
+  ))
+
+  fit_tmp2 <- glm(suicide ~ pm25 + ns(time_days, d) + ns(tmean, 3) +
+                     is_weekend + precip,
+                   family = quasipoisson, data = df)
+  b2 <- coef(fit_tmp2)["pm25"]
+  se2 <- sqrt(vcov(fit_tmp2)["pm25", "pm25"])
+
+  sens_df <- rbind(sens_df, data.frame(
+    df_time = d,
+    outcome = "Suicide",
+    RR = exp(b2 * 10),
+    lower = exp((b2 - 1.96 * se2) * 10),
+    upper = exp((b2 + 1.96 * se2) * 10)
+  ))
+}
+```
+
+```{r fig.width=8, fig.height=4.5}
+ggplot(sens_df, aes(x = factor(df_time), y = RR)) +
+  geom_point(size = 2.5) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.15) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray40") +
+  facet_wrap(~outcome, scales = "free_y") +
+  labs(x = "Time trend spline df", y = "Rate ratio per 10 μg/m³ PM2.5",
+       title = "Sensitivity of PM2.5 effect to time trend flexibility") +
+  theme_bw(base_size = 11)
+```
+
+## Sensitivity analysis: exclude high PM2.5 days
+
+```{r}
+pm95_cutoff <- quantile(df$pm25, 0.95)
+df_trimmed <- df[df$pm25 <= pm95_cutoff, ]
+cat("Excluded", nrow(df) - nrow(df_trimmed), "days with PM2.5 >",
+    round(pm95_cutoff, 1), "μg/m³\n")
+
+fit_trim_mh <- glm(mental_health ~ pm25 + ns(time_days, 4) + ns(tmean, 3) +
+                      is_weekend + precip,
+                    family = quasipoisson, data = df_trimmed)
+fit_trim_sui <- glm(suicide ~ pm25 + ns(time_days, 4) + ns(tmean, 3) +
+                       is_weekend + precip,
+                     family = quasipoisson, data = df_trimmed)
+
+rr_trim <- rbind(
+  extract_rr(fit_trim_mh, "Mental health (trimmed)"),
+  extract_rr(fit_trim_sui, "Suicide (trimmed)")
+)
+rr_trim$RR <- round(rr_trim$RR, 3)
+rr_trim$lower <- round(rr_trim$lower, 3)
+rr_trim$upper <- round(rr_trim$upper, 3)
+rr_trim$p <- round(rr_trim$p, 3)
+
+rbind(rr_table, rr_trim)
+```
+
+## Residual diagnostics
+
+```{r fig.width=8, fig.height=4}
+par(mfrow = c(1, 2))
+plot(fitted(fit_qp_mh), residuals(fit_qp_mh, type = "deviance"),
+     xlab = "Fitted", ylab = "Deviance residuals",
+     main = "Mental health: residuals vs fitted", pch = 16, cex = 0.7)
+abline(h = 0, lty = 2)
+
+plot(df$date, residuals(fit_qp_mh, type = "deviance"),
+     xlab = "Date", ylab = "Deviance residuals",
+     main = "Mental health: residuals over time", pch = 16, cex = 0.7)
+abline(h = 0, lty = 2)
+```
+
+```{r fig.width=7, fig.height=4}
+pacf(residuals(fit_qp_mh, type = "deviance"),
+     main = "PACF of deviance residuals (mental health)")
+```
+
+```{r fig.width=8, fig.height=4}
+par(mfrow = c(1, 2))
+plot(fitted(fit_qp_sui), residuals(fit_qp_sui, type = "deviance"),
+     xlab = "Fitted", ylab = "Deviance residuals",
+     main = "Suicide: residuals vs fitted", pch = 16, cex = 0.7)
+abline(h = 0, lty = 2)
+
+plot(df$date, residuals(fit_qp_sui, type = "deviance"),
+     xlab = "Date", ylab = "Deviance residuals",
+     main = "Suicide: residuals over time", pch = 16, cex = 0.7)
+abline(h = 0, lty = 2)
+```
+
+## Predicted vs observed
+
+```{r fig.width=9, fig.height=4}
+df$pred_mh <- fitted(fit_qp_mh)
+
+ggplot(df, aes(x = date)) +
+  geom_point(aes(y = mental_health), alpha = 0.4, size = 1.2, color = "gray40") +
+  geom_line(aes(y = pred_mh), color = "#E15759", linewidth = 0.8) +
+  labs(x = "Date", y = "Daily count",
+       title = "Mental health calls: observed vs quasi-Poisson fitted values") +
+  theme_bw(base_size = 11)
+```
+
+## Results section outline (Quasi-Poisson GLM)
+
+The quasi-Poisson GLM estimated a rate ratio of 0.974 (95% CI: 0.932–1.017) per 10 μg/m³ increase in same-day PM2.5 for mental health EMS calls, after adjusting for seasonal trend, temperature, weekend, and precipitation (p = 0.228). For suicide-related calls, the estimated rate ratio was 1.089 (95% CI: 0.837–1.416, p = 0.526). Neither association was statistically significant.
+
+Key points for the results write-up:
+
+- The dispersion parameter for mental health was 2.24, confirming overdispersion relative to standard Poisson. For suicide calls the dispersion was 0.95, close to 1.
+- The PM2.5 coefficient was not statistically significant for either outcome.
+- Weekend indicator was a strong predictor for mental health calls (lower on weekends, p < 0.001), consistent with the EDA.
+- Sensitivity analysis: the PM2.5 rate ratio for mental health was stable across time trend df = 3–6 (ranging from 0.972 to 0.976). However, excluding high-PM2.5 days (>95th percentile) shifted the estimate from 0.974 to 1.015, suggesting the slight negative association in the main model may be driven by a few high-exposure days.
+- Residual diagnostics: check PACF plot for any remaining temporal autocorrelation after the time spline adjustment.
+
