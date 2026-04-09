@@ -779,7 +779,7 @@ df_borough |>
   kable(caption = "Borough-level summary statistics")
 ```
 
-# Model Fitting
+## Model Fitting
 
 ```{r fit-ri}
 mod_RI <- glmmTMB(
@@ -799,6 +799,83 @@ mod_RIRS <- glmmTMB(
 )
 ```
 
+```{r fe-table}
+# Extract fixed effects, exponentiate for Rate Ratios
+summary(mod_RI)$coefficients$cond |>
+  as.data.frame() |>
+  tibble::rownames_to_column("Term") |>
+  filter(!grepl("^ns\\(", Term)) |>          # suppress spline terms
+  mutate(
+    RR      = round(exp(Estimate), 3),
+    `95% LCI` = round(exp(Estimate - 1.96 * `Std. Error`), 3),
+    `95% UCI` = round(exp(Estimate + 1.96 * `Std. Error`), 3),
+    `p-value` = round(`Pr(>|z|)`, 3)
+  ) |>
+  select(Term, RR, `95% LCI`, `95% UCI`, `p-value`) |>
+  kable(caption = "Fixed effects (rate ratios) — Random Intercept model")
+```
+
+## Spacial Variance
+
+```{r vc-ri}
+VarCorr(mod_RI) |> print(comp = "Std.Dev.")
+# ICC calculation
+#  Mental Health Calls ICC
+lmer(mental_health ~ (1 | borough), data = df_borough) |> 
+  VarCorr() |> 
+  as.data.frame() |> 
+  (\(v) cat(sprintf("ICC (mental health calls) : %.3f\n", v$vcov[1] / sum(v$vcov))))()
+
+# PM2.5 Scaled ICC
+lmer(PM2.5.scaled ~ (1 | borough) , data = df_borough) |> 
+  VarCorr() |> 
+  as.data.frame() |> 
+  (\(v) cat(sprintf("ICC (PM2.5 scaled) : %.3f\n", v$vcov[1] / sum(v$vcov))))()
+```
+
+## Likelihood Ratio Test: RI vs. RIRS
+
+```{r lrt}
+anova(mod_RI, mod_RIRS) |>
+  as.data.frame() |>
+  select(Df, AIC, BIC, logLik, Chisq, `Chi Df`, `Pr(>Chisq)`) |>
+  kable(caption = "LRT: Random Intercept vs. Random Intercept + Slope",
+        digits = 3)
+```
+
+## Borough-Specific Random Effects (RI model)
+
+```{r ranef-plot}
+ranef(mod_RI)$cond$borough |>
+  tibble::rownames_to_column("Borough") |>
+  rename(Intercept = `(Intercept)`) |>
+  mutate(
+    se  = sqrt(diag(as.matrix(vcov(mod_RI)$cond))["(Intercept)"]),
+    lci = Intercept - 1.96 * se,
+    uci = Intercept + 1.96 * se
+  ) |>
+  ggplot(aes(x = reorder(Borough, Intercept), y = Intercept)) +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
+  geom_pointrange(aes(ymin = lci, ymax = uci), size = 0.7) +
+  coord_flip() +
+  labs(x = NULL, y = "Random intercept (log scale)",
+       title = "Borough-specific baseline deviations") +
+  theme_bw(base_size = 11)
+```
+
+## Borough-Specific Slopes (RIRS model — exploratory)
+
+```{r slope-plot}
+coef(mod_RIRS)$cond$borough |>
+  tibble::rownames_to_column("Borough") |>
+  ggplot(aes(x = PM2.5.scaled, y = reorder(Borough, PM2.5.scaled))) +
+  geom_point(size = 3) +
+  geom_vline(xintercept = fixef(mod_RIRS)$cond["PM2.5.scaled"], 
+             linetype = "dashed", color = "grey50") +
+  labs(x = "Total PM2.5 slope (log scale)", y = NULL,
+       title = "Borough-specific PM2.5 total effect") +
+  theme_bw(base_size = 11)
+```
 
 
 
