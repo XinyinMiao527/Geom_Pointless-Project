@@ -763,7 +763,7 @@ Key points for the results write-up:
 - Sensitivity analysis: the PM2.5 rate ratio for mental health was stable across time trend df = 3–6 (ranging from 0.972 to 0.976). However, excluding high-PM2.5 days (>95th percentile) shifted the estimate from 0.974 to 1.015, suggesting the slight negative association in the main model may be driven by a few high-exposure days.
 - Residual diagnostics: check PACF plot for any remaining temporal autocorrelation after the time spline adjustment.
 
-#Borough-Level Mixed Effects Analysis (Zichen Fan)
+# Borough-Level Mixed Effects Analysis (Zichen Fan)
 
 ## Data preperation
 
@@ -840,6 +840,7 @@ summary(mod_RI)$coefficients$cond |>
 VarCorr(mod_RI) |> print(comp = "Std.Dev.")
 # ICC calculation
 #  Mental Health Calls ICC
+library(lme4) 
 lmer(mental_health ~ (1 | borough), data = df_borough) |> 
   VarCorr() |> 
   as.data.frame() |> 
@@ -904,7 +905,7 @@ Key points to be included in result:
 - The likelihood ratio test comparing the random-intercept (RI) and random-slope (RIRS) specifications was not significant, suggesting that the association between $PM_{2.5}$ and EMS calls did not vary significantly across the four boroughs.
 - RIRS exhibited singular convergence and a correlation of -1.00 between the intercept and slope, likely due to the limited number of spatial units ($K = 4$) available for estimating the variance-covariance matrix.
 
-Case-crossover--Teresa Sha
+# Case-crossover--Teresa Sha
 
 ```{r}
 library(ggplot2)
