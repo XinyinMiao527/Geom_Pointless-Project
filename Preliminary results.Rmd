@@ -785,17 +785,8 @@ library(broom)
 ## ---------------------------
 ## 1. read data
 ## ---------------------------
-## Choose ONE path that matches your own folder structure.
 
-## Option A: if your script is inside the project folder
-## and analysis_2024.csv is in data/
 file_path <- "data/analysis_2024.csv"
-
-## Option B: if analysis_2024.csv is in the same folder as this script
-## file_path <- "analysis_2024.csv"
-
-## Option C: if you want to use full local path on your computer
-## file_path <- "/Users/yourname/Desktop/aa_project/data/analysis_2024.csv"
 
 df <- read.csv(file_path)
 
