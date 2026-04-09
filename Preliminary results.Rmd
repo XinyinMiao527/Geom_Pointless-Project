@@ -877,8 +877,13 @@ coef(mod_RIRS)$cond$borough |>
   theme_bw(base_size = 11)
 ```
 
+Key points to be included in result:
 
-
+- In the primary random-intercept model, a $10 \ \mu g/m^3$ increase in same-day $PM_{2.5}$ was associated with a statistically significant 3.6% decrease in mental health-related EMS calls ($RR = 0.964$; $95\% \ CI: 0.931–0.997$; $p = 0.033$).
+- Evidence of Spatial Clustering: An intra-class correlation coefficient (ICC) of 0.525 for mental health calls confirmed that over half of the total variance in call volume was attributable to differences between boroughs, justifying the use of a mixed-effects framework.
+- The random-intercept model identified substantial baseline risk variation across the city, with a random-intercept standard deviation ($\hat{\sigma}_0$) of 0.133.
+- The likelihood ratio test comparing the random-intercept (RI) and random-slope (RIRS) specifications was not significant, suggesting that the association between $PM_{2.5}$ and EMS calls did not vary significantly across the four boroughs.
+- RIRS exhibited singular convergence and a correlation of -1.00 between the intercept and slope, likely due to the limited number of spatial units ($K = 4$) available for estimating the variance-covariance matrix.
 
 Case-crossover--Teresa Sha
 
