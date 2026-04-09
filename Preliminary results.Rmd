@@ -744,6 +744,61 @@ Key points for the results write-up:
 - Sensitivity analysis: the PM2.5 rate ratio for mental health was stable across time trend df = 3–6 (ranging from 0.972 to 0.976). However, excluding high-PM2.5 days (>95th percentile) shifted the estimate from 0.974 to 1.015, suggesting the slight negative association in the main model may be driven by a few high-exposure days.
 - Residual diagnostics: check PACF plot for any remaining temporal autocorrelation after the time spline adjustment.
 
+#Borough-Level Mixed Effects Analysis (Zichen Fan)
+
+## Data preperation
+
+Different from the city level data used above, this analysis uses the dataset (`analysis_2024_borough.csv`) contains 480 borough-day observations across
+four NYC boroughs (Bronx, Brooklyn, Manhattan, Queens) to consider mixed effects.
+```{r}
+library(glmmTMB)
+df_borough = read.csv("data/analysis_2024_borough.csv") |>
+  mutate(
+    date         = as.Date(date),
+    borough      = factor(borough),
+    time         = as.numeric(date - min(date)),
+    PM2.5.scaled = as.numeric(scale(pm25)),
+    tmean.scaled = as.numeric(scale(tmean))
+  )
+```
+
+## Descriptive Summary
+`PM2.5.scaled` and `tmean.scaled` are standardized (mean = 0, SD = 1) to aid convergence
+and make variance components comparable; a continuous `time` variable (days since
+2024-01-01) supports the long-term trend spline.
+```{r}
+df_borough |>
+  group_by(borough) |>
+  summarise(
+    n          = n(),
+    `Mean PM2.5 (µg/m³)` = round(mean(pm25), 2),
+    `SD PM2.5`           = round(sd(pm25), 2),
+    `Mean MH calls/day`  = round(mean(mental_health), 1),
+    `SD MH calls`        = round(sd(mental_health), 1)
+  ) |>
+  kable(caption = "Borough-level summary statistics")
+```
+
+# Model Fitting
+
+```{r fit-ri}
+mod_RI <- glmmTMB(
+  mental_health ~ PM2.5.scaled + ns(time, 4) + ns(tmean.scaled, 3) +
+    is_weekend + precip + (1 | borough),
+  family = nbinom2,
+  data   = df_borough
+)
+```
+
+```{r fit-rirs}
+mod_RIRS <- glmmTMB(
+  mental_health ~ PM2.5.scaled + ns(time, 4) + ns(tmean.scaled, 3) +
+    is_weekend + precip + (1 + PM2.5.scaled | borough),
+  family = nbinom2,
+  data   = df_borough
+)
+```
+
 
 
 
