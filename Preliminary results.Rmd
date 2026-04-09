@@ -15,6 +15,24 @@ knitr::opts_chunk$set(
 )
 ```
 
+# DAG 
+```{r}
+library(dagitty)
+
+g <- dagitty("dag {
+  PM25 -> MentalHealthEMS
+  TimeTrend -> PM25
+  TimeTrend -> MentalHealthEMS
+  Temperature -> PM25
+  Temperature -> MentalHealthEMS
+  Precipitation -> PM25
+  Precipitation -> MentalHealthEMS
+  Weekend -> PM25
+  Weekend -> MentalHealthEMS
+}")
+
+plot(g)
+```
 
 # Nonlinear Exposure--Response Analysis (Xinyin Miao)
 
@@ -27,6 +45,7 @@ library(splines)
 library(lubridate)
 library(purrr)
 library(tidyr)
+library(knitr)
 ```
 
 ## Read and prepare data
