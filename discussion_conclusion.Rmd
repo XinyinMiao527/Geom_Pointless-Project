@@ -58,15 +58,17 @@ More broadly, the null short-term finding is informative when read alongside the
 
 ### Key results
 
-*(to be filled in)*
+The primary random-intercept negative binomial mixed model found a statistically significant negative association between scaled PM2.5 and mental health EMS calls (RR = 0.987 per ~3.7 µg/m³ increase; 95% CI: 0.974–0.999; p = 0.033). An ICC of 0.525 for mental health call volume confirmed that over half the total outcome variance was attributable to between-borough differences. The RI standard deviation (σ^0=0.133) reflected meaningful baseline heterogeneity across boroughs, with Brooklyn and Manhattan showing above-average baseline call volumes and Queens the lowest. The LRT comparing the RI and RIRS models was non-significant (χ2=0.882, df = 2, p = 0.643), therefore no significant improvement in model fit with RS added. Furthermore, the RS model exhibited singular convergence, likely due to the limited number of spatial clusters (n=4), justifying the selection of the more parsimonious RI model.
 
 ### Interpretation
 
-*(to be filled in)*
+The negative direction is puzzling — but consistent across all four analyses. This is worth emphasizing. The city-wide quasi-Poisson model gave RR = 0.974 (*p* = 0.228) for mental health; Case-crossover returned IRRs hovering just below 1.0 across all lag structures; nonlinear curve showed a gradual downward slope at higher PM2.5 concentrations with a modest mid-range hump. None of these pointed toward a positive association for mental health calls. This model is the only one to achieve statistical significance is likely a power story, the panel structure (480 observations, repeated within borough) gives more leverage than the city-level 124-day series, not because the effect is fundamentally different but because clustering is now explicitly modeled rather than ignored.
 
-### References
+Why might higher PM2.5 days be associated with fewer mental health EMS calls? A few potential explanations could be discussed: 1. On visibly polluted days people may stay indoors, reducing exposure to the social environments (transit, crowds, street-level interactions) that often precede acute psychiatric crises. 2. In NYC, the highest-PM2.5 days are often wildfire smoke intrusion events rather than locally-generated traffic pollution. These events may not carry the same constellation of co-stressors (noise, heat, crowding) that drive EMS calls on typical high-pollution days.
 
-*(to be filled in)*
+ICC results suggest that random-intercept approach is more appropriate here than a fixed-intercept model, as it borrows strength across boroughs while still controlling for unmeasured time-invariant confounders. The baseline call volume gradient (Brooklyn > Manhattan > Bronx > Queens) is consistent with known disparities in mental health burden and EMS utilization across NYC boroughs, likely reflecting socioeconomic vulnerability, housing density, and differential access to outpatient psychiatric services.
+
+Using only K=4 boroughs, the math allow the model has low degrees of freedom to calculate how much the slopes actually vary between those four groups. So, the non-significant LRT should be interpreted cautiously.Cannot rule out meaningful effect modification by borough, particularly given that borough-specific total slopes from the RIRS model show a visible gradient (Brooklyn and Manhattan appearing more negative than Bronx and Queens), which could reflect differences in population vulnerability, green space, or co-exposure patterns.
 
 ---
 
