@@ -64,11 +64,16 @@ The primary random-intercept negative binomial mixed model found a statistically
 
 The negative direction is puzzling — but consistent across all four analyses. This is worth emphasizing. The city-wide quasi-Poisson model gave RR = 0.974 (*p* = 0.228) for mental health; Case-crossover returned IRRs hovering just below 1.0 across all lag structures; nonlinear curve showed a gradual downward slope at higher PM2.5 concentrations with a modest mid-range hump. None of these pointed toward a positive association for mental health calls. This model is the only one to achieve statistical significance is likely a power story, the panel structure (480 observations, repeated within borough) gives more leverage than the city-level 124-day series, not because the effect is fundamentally different but because clustering is now explicitly modeled rather than ignored.
 
-Why might higher PM2.5 days be associated with fewer mental health EMS calls? A few potential explanations could be discussed: 1. On visibly polluted days people may stay indoors, reducing exposure to the social environments (transit, crowds, street-level interactions) that often precede acute psychiatric crises. 2. In NYC, the highest-PM2.5 days are often wildfire smoke intrusion events rather than locally-generated traffic pollution. These events may not carry the same constellation of co-stressors (noise, heat, crowding) that drive EMS calls on typical high-pollution days.
+Why might higher PM2.5 days be associated with fewer mental health EMS calls? A few potential explanations could be discussed: On visibly polluted days people may stay indoors, reducing exposure to the social environments (transit, crowds, street-level interactions) that often precede acute psychiatric crises. Studies from South Korea demonstrate that real-time air pollution alerts reduce outdoor activity participation by around 7%. PubMed Central Reduced outdoor activity and social interaction may transiently lower the situational triggers (e.g., public confrontation, social stress) that precipitate many.
 
 ICC results suggest that random-intercept approach is more appropriate here than a fixed-intercept model, as it borrows strength across boroughs while still controlling for unmeasured time-invariant confounders. The baseline call volume gradient (Brooklyn > Manhattan > Bronx > Queens) is consistent with known disparities in mental health burden and EMS utilization across NYC boroughs, likely reflecting socioeconomic vulnerability, housing density, and differential access to outpatient psychiatric services.
 
 Using only K=4 boroughs, the math allow the model has low degrees of freedom to calculate how much the slopes actually vary between those four groups. So, the non-significant LRT should be interpreted cautiously.Cannot rule out meaningful effect modification by borough, particularly given that borough-specific total slopes from the RIRS model show a visible gradient (Brooklyn and Manhattan appearing more negative than Bronx and Queens), which could reflect differences in population vulnerability, green space, or co-exposure patterns.
+
+### References
+
+Yoo G. (2021). Real-time information on air pollution and avoidance behavior: evidence from South Korea. Population and environment, 42(3), 406–424. https://doi.org/10.1007/s11111-020-00368-0
+
 
 ---
 
@@ -138,7 +143,7 @@ From a public health perspective, our results suggest that PM2.5 may not be the 
 | Member | Method | Past contributions | This check-in | Future responsibilities |
 |--------|--------|--------------------|---------------|-------------------------|
 | Yiming Cao | Quasi-Poisson Time Series GLM | Data acquisition, EDA and figures; methods proposal section for GLM; preliminary GLM results; borough-level dataset preprocessing (`prep_borough.py`) for mixed model | Discussion section for Quasi-Poisson GLM; literature review; set up shared Rmd for this check-in | Final write-up of GLM section; contribute to conclusion |
-| Zichen Fan | Borough-Level Mixed Effects | Methods proposal section for mixed model; preliminary mixed-effects model fitting, plots, and key results; formatting updates | Discussion section for borough-level mixed model (key results and interpretation, including cross-method comparison) | Final write-up of mixed model section; contribute to conclusion |
+| Zichen Fan | Borough-Level Mixed Effects | Methods proposal section for mixed model; preliminary mixed-effects model fitting, plots, and key results; formatting updates | Mixed-effect discussion write-up | /|
 | Xinyin Miao | Nonlinear Exposure-Response | Introduction of project; repository initial setup; methods proposal section for nonlinear analysis; preliminary nonlinear analysis and sensitivity (nonlinear precipitation); DAG |Discussion section for nonlinear analysis; literature review | Final write-up of nonlinear section; contribute to conclusion |
 | Teresa Sha | Case-crossover | Initial case-crossover Rmd; case-crossover sensitivity analysis; preliminary case-crossover results | Discussion section for case-crossover (key results, interpretation, preliminary comparison with literature, and public health implications) | Final write-up of case-crossover section; contribute to conclusion |
 
