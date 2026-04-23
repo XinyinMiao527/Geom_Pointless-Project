@@ -18,7 +18,7 @@ Using a quasi-Poisson GLM on daily city-wide EMS counts for 2024, I estimated a 
 
 I didn't find a clear short-term city-wide association between PM2.5 and either outcome in 2024. A few things likely contribute to this. First, 2024 was a relatively clean air year in NYC: the 95th percentile of daily PM2.5 was only 12.9 μg/m³, well below the levels seen in studies that found positive associations. With limited exposure contrast, the model has little to work with at the upper end of the distribution. Second, the sensitivity analysis that excluded high-PM2.5 days changed the point estimate from slightly below 1 to slightly above 1, which suggests the main estimate is sensitive to a handful of high-exposure days and should not be over-interpreted either direction. Third, EMS calls are a coarse outcome. Not every psychiatric crisis triggers a 911 call, and the reverse is also true, so we may be missing the cases that are more responsive to environmental stressors.
 
-When I put these numbers next to the other methods in our project, the picture is reasonably consistent. The case-crossover results from Teresa also had IRRs close to 1 with CIs crossing the null, and Xinyin's nonlinear specification did not reveal a strong exposure-response shape either. The one place where something different shows up is Zichen's borough-level mixed model, which found a borderline-significant 3.6% decrease in mental health calls per 10 μg/m³ (RR = 0.964, p = 0.033). That discrepancy probably reflects the added spatial variation the mixed model uses; borough-specific baselines absorb part of the confounding that a city-wide GLM cannot. With only four boroughs it is hard to lean on that result too hard.
+When I put these numbers next to the other methods in our project, the picture is reasonably consistent. The case-crossover results from Teresa also had IRRs close to 1 with CIs crossing the null, and Xinyin's nonlinear specification did not reveal a strong exposure-response shape either. The one place where something different shows up is Zichen's borough-level mixed model, which found a borderline-significant ~1.3% decrease in mental health calls per one-SD increase in PM2.5 (RR = 0.987, p = 0.033). That discrepancy probably reflects the added spatial variation the mixed model uses; borough-specific baselines absorb part of the confounding that a city-wide GLM cannot. With only four boroughs it is hard to lean on that result too hard.
 
 These findings fit the mixed literature on short-term PM2.5 and psychiatric outcomes. Kim et al. (2010) reported a 10.1% increase in suicide risk per IQR increase in PM2.5 (1 day prior) in seven South Korean cities, where ambient PM2.5 is typically much higher than in NYC. Bakian et al. (2015) found a smaller effect for PM2.5 (about 5% higher odds of suicide for exposure 2–3 days before death) in Salt Lake County, with the stronger signal coming from NO2. On the mental health side, Bernardini et al. (2020) examined psychiatric emergency admissions in two Italian hospitals and found no association with PM2.5; only ozone was significant. Our 2024 NYC result lines up with the idea that short-term PM2.5 signals show up more clearly where PM2.5 is higher. In cities near the WHO guideline, other pollutants or multi-day lags may matter more than same-day PM2.5.
 
@@ -96,23 +96,40 @@ From a public health perspective, our results suggest that PM2.5 may not be the 
 
 # Conclusion
 
-*(to be drafted together — suggested structure below)*
-
 ### Research gap
 
-*(brief reminder of the gap our project addresses)*
+- Most short-term PM2.5 and mental-health research comes from higher-exposure settings (Kim 2010 South Korea, Bernardini 2020 Italy) or from long-term cohort studies tracking incident diagnoses (Yang 2023 UK Biobank). A clean-air US city like post-wildfire 2024 NYC has barely been characterized on this question, even though it is the exposure range the new EPA 9 μg/m³ annual standard is aimed at.
+- Prior NYC work has mostly used ED admissions or hospital discharge records. EMS calls sit closer to symptom onset and to the acute-crisis end of the severity spectrum, and that slice of the pathway is rarely studied.
+- Cross-design triangulation is uncommon in this literature. Most papers use one method and report one p-value.
+- Borough-level heterogeneity in the PM2.5–mental-health link has rarely been modeled explicitly for NYC, despite well-known differences in baseline call rates and exposure across boroughs.
 
 ### Strengths
 
-*(e.g., multiple complementary methods on the same 2024 NYC data, spatial + temporal angles, sensitivity analyses)*
+- Four methods run on the same dataset. City-wide quasi-Poisson GLM, nonlinear spline model, borough mixed-effects model, and time-stratified case-crossover all pointed to null or near-null associations for mental-health and suicide-related EMS calls. Internal replication across designs that rely on different identifying assumptions is more convincing than any single estimate.
+- The case-crossover design controls for time-invariant confounders by construction, so Teresa's null complements Yiming's and Xinyin's covariate-adjusted nulls from a different angle.
+- Temperature showed up as a clear positive predictor across methods, which is a useful sanity check that the pipeline isn't just returning nulls everywhere.
+- The borough random-intercept model recovered an ICC of 0.525, confirming that about half of the residual variance in mental-health call volume lives between boroughs. Ignoring clustering would have overstated precision.
+- All data sources (NYC Open Data EMS, EPA PM2.5, NOAA weather) are public, so the pipeline is reproducible.
 
 ### Limitations
 
-*(e.g., single-year data, ecological design, limited exposure contrast, EMS as a coarse outcome proxy, only 4 boroughs with PM2.5 monitors)*
+- Single year of data in one city. 2024 was a relatively clean-air year, with a 95th percentile daily PM2.5 of only 12.9 μg/m³, which means slopes are estimated over a narrow exposure range. Null findings at this level do not speak to what happens during smoke events or in higher-pollution cities.
+- EMS calls are an imperfect proxy for acute mental-health burden. They capture only crises severe enough to trigger a 911 response and are filtered by bystander presence, neighborhood calling norms, and dispatch coding. Someone experiencing a psychiatric crisis alone at home is invisible in this dataset.
+- Exposure was assigned at the city or borough level, not the individual. On high-PM2.5 days people are more likely to stay indoors, which attenuates effective personal exposure and may even reverse the direction of the observed association.
+- K = 4 boroughs is very few clusters for a mixed model. The RIRS specification hit singular convergence, and small-sample corrections can't fully fix it. The borderline-significant negative fixed effect from Zichen's RI model (RR 0.987, p = 0.033) is not biologically plausible as a protective effect. It probably reflects residual confounding — for example from unmeasured socioeconomic differences across boroughs, or from behavioral changes on smoke days that reduce outdoor exposure.
+- Weather adjustment used a single Central Park station for all boroughs. Temperature and humidity vary across NYC, and that variation is not captured.
+- We did not adjust for co-pollutants like O3 and NO2, both of which correlate with PM2.5 and have been implicated in prior work (Bernardini 2020 found ozone significant where PM2.5 was not; Bakian 2015 found the strongest signal for NO2).
+- Lag structure exploration was limited. Main analyses used same-day or lag 0–2; we did not fit distributed lag models, so subacute (3–14 day) effects were not examined.
+- No formal correction for multiple testing across four methods and two outcomes.
 
 ### Future applications
 
-*(e.g., multi-year analysis, adding other pollutants, finer spatial resolution, integrating socioeconomic modifiers)*
+- Extend to multi-year data (e.g. 2019–2024). This would capture the June 2023 Canadian wildfire smoke event, when daily PM2.5 briefly exceeded 200 μg/m³, and provide the exposure contrast needed to detect acute effects that a quiet year like 2024 cannot.
+- Fit distributed lag nonlinear models (DLNM) to estimate lag and dose-response jointly rather than picking lag 0, 0–1, 0–2 by hand.
+- Use finer spatial units (ZIP code, community district, or census tract) to raise K and make the hierarchical framework actually defensible. Satellite-derived PM2.5 would also help with within-borough heterogeneity.
+- Fit multi-pollutant models including NO2, O3, and pollen to address confounding by correlated exposures.
+- Link EMS records to ED discharge, hospital admission, or Medicaid claims data to get person-level follow-up and better outcome classification, including prior psychiatric history.
+- For public health: our null at low exposure does not argue against the 9 μg/m³ annual standard, but it does suggest that mental-health surveillance resources are better directed at smoke episodes and extreme-heat days than at routine daily variation.
 
 ---
 
@@ -121,7 +138,7 @@ From a public health perspective, our results suggest that PM2.5 may not be the 
 | Member | Method | Past contributions | This check-in | Future responsibilities |
 |--------|--------|--------------------|---------------|-------------------------|
 | Yiming Cao | Quasi-Poisson Time Series GLM | Data acquisition, EDA and figures; methods proposal section for GLM; preliminary GLM results; borough-level dataset preprocessing (`prep_borough.py`) for mixed model | Discussion section for Quasi-Poisson GLM; literature review; set up shared Rmd for this check-in | Final write-up of GLM section; contribute to conclusion |
-| Zichen Fan | Borough-Level Mixed Effects | Methods proposal section for mixed model; preliminary mixed-effects model fitting, plots, and key results; formatting updates | *(to be filled in)* | *(to be filled in)* |
+| Zichen Fan | Borough-Level Mixed Effects | Methods proposal section for mixed model; preliminary mixed-effects model fitting, plots, and key results; formatting updates | Discussion section for borough-level mixed model (key results and interpretation, including cross-method comparison) | Final write-up of mixed model section; contribute to conclusion |
 | Xinyin Miao | Nonlinear Exposure-Response | Introduction of project; repository initial setup; methods proposal section for nonlinear analysis; preliminary nonlinear analysis and sensitivity (nonlinear precipitation); DAG |Discussion section for nonlinear analysis; literature review | Final write-up of nonlinear section; contribute to conclusion |
-| Teresa Sha | Case-crossover | Initial case-crossover Rmd; case-crossover sensitivity analysis; preliminary case-crossover results | *(to be filled in)* | *(to be filled in)* |
+| Teresa Sha | Case-crossover | Initial case-crossover Rmd; case-crossover sensitivity analysis; preliminary case-crossover results | Discussion section for case-crossover (key results, interpretation, preliminary comparison with literature, and public health implications) | Final write-up of case-crossover section; contribute to conclusion |
 
