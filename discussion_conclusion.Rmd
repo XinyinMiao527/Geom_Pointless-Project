@@ -1,0 +1,112 @@
+---
+title: "Discussion and Conclusion"
+author: "Yiming Cao, Zichen Fan, Xinyin Miao, Teresa Sha"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+# Discussion
+
+## Quasi-Poisson Time Series GLM (Yiming Cao)
+
+### Key results
+
+Using a quasi-Poisson GLM on daily city-wide EMS counts for 2024, I estimated a rate ratio of 0.974 (95% CI 0.932–1.017, p = 0.228) per 10 μg/m³ increase in same-day PM2.5 for mental health-related calls, and 1.089 (95% CI 0.837–1.416, p = 0.526) for suicide-related calls. Neither association reached statistical significance. The dispersion parameter was 2.24 for mental health and 0.95 for suicide, which is why the quasi-Poisson variance adjustment mattered for the mental health model but less so for suicide. The PM2.5 estimate for mental health was stable across time-trend df from 3 to 6 (RR between 0.972 and 0.976), but dropping the top 5% of PM2.5 days moved the estimate from 0.974 to 1.015. The weekend indicator was the strongest predictor in the mental health model (fewer calls on weekends, p < 0.001), consistent with what we saw in the EDA.
+
+### Interpretation
+
+I didn't find a clear short-term city-wide association between PM2.5 and either outcome in 2024. A few things likely contribute to this. First, 2024 was a relatively clean air year in NYC: the 95th percentile of daily PM2.5 was only 12.9 μg/m³, well below the levels seen in studies that found positive associations. With limited exposure contrast, the model has little to work with at the upper end of the distribution. Second, the sensitivity analysis that excluded high-PM2.5 days changed the point estimate from slightly below 1 to slightly above 1, which suggests the main estimate is sensitive to a handful of high-exposure days and should not be over-interpreted either direction. Third, EMS calls are a coarse outcome. Not every psychiatric crisis triggers a 911 call, and the reverse is also true, so we may be missing the cases that are more responsive to environmental stressors.
+
+When I put these numbers next to the other methods in our project, the picture is reasonably consistent. The case-crossover results from Teresa also had IRRs close to 1 with CIs crossing the null, and Xinyin's nonlinear specification did not reveal a strong exposure-response shape either. The one place where something different shows up is Zichen's borough-level mixed model, which found a borderline-significant 3.6% decrease in mental health calls per 10 μg/m³ (RR = 0.964, p = 0.033). That discrepancy probably reflects the added spatial variation the mixed model uses; borough-specific baselines absorb part of the confounding that a city-wide GLM cannot. With only four boroughs it is hard to lean on that result too hard.
+
+These findings fit the mixed literature on short-term PM2.5 and psychiatric outcomes. Kim et al. (2010) reported a 10.1% increase in suicide risk per IQR increase in PM2.5 (1 day prior) in seven South Korean cities, where ambient PM2.5 is typically much higher than in NYC. Bakian et al. (2015) found a smaller effect for PM2.5 (about 5% higher odds of suicide for exposure 2–3 days before death) in Salt Lake County, with the stronger signal coming from NO2. On the mental health side, Bernardini et al. (2020) examined psychiatric emergency admissions in two Italian hospitals and found no association with PM2.5; only ozone was significant. Our 2024 NYC result lines up with the idea that short-term PM2.5 signals show up more clearly where PM2.5 is higher. In cities near the WHO guideline, other pollutants or multi-day lags may matter more than same-day PM2.5.
+
+### References
+
+- Bakian AV, Huber RS, Coon H, Gray D, Wilson P, McMahon WM, Renshaw PF. Acute air pollution exposure and risk of suicide completion. *Am J Epidemiol.* 2015;181(5):295–303.
+- Kim C, Jung SH, Kang DR, Kim HC, Moon KT, Hur NW, Shin DC, Suh I. Ambient particulate matter as a risk factor for suicide. *Am J Psychiatry.* 2010;167(9):1100–1107.
+- Bernardini F, Attademo L, Trezzi R, et al. Air pollutants and daily number of admissions to psychiatric emergency services: evidence for detrimental mental health effects of ozone. *Epidemiol Psychiatr Sci.* 2020;29:e66.
+
+---
+
+## Nonlinear Exposure-Response Analysis (Xinyin Miao)
+
+### Key results
+
+*(to be filled in)*
+
+### Interpretation
+
+*(to be filled in)*
+
+### References
+
+*(to be filled in)*
+
+---
+
+## Borough-Level Mixed Effects Analysis (Zichen Fan)
+
+### Key results
+
+*(to be filled in)*
+
+### Interpretation
+
+*(to be filled in)*
+
+### References
+
+*(to be filled in)*
+
+---
+
+## Case-crossover Analysis (Teresa Sha)
+
+### Key results
+
+*(to be filled in)*
+
+### Interpretation
+
+*(to be filled in)*
+
+### References
+
+*(to be filled in)*
+
+---
+
+# Conclusion
+
+*(to be drafted together — suggested structure below)*
+
+### Research gap
+
+*(brief reminder of the gap our project addresses)*
+
+### Strengths
+
+*(e.g., multiple complementary methods on the same 2024 NYC data, spatial + temporal angles, sensitivity analyses)*
+
+### Limitations
+
+*(e.g., single-year data, ecological design, limited exposure contrast, EMS as a coarse outcome proxy, only 4 boroughs with PM2.5 monitors)*
+
+### Future applications
+
+*(e.g., multi-year analysis, adding other pollutants, finer spatial resolution, integrating socioeconomic modifiers)*
+
+---
+
+# Team Contributions
+
+| Member | Method | Past contributions | This check-in | Future responsibilities |
+|--------|--------|--------------------|---------------|-------------------------|
+| Yiming Cao | Quasi-Poisson Time Series GLM | Data preprocessing (city-wide + borough-level), EDA, methods proposal section, preliminary GLM results | Discussion section for Quasi-Poisson GLM; literature review | Final write-up of GLM section; help with conclusion |
+| Zichen Fan | Borough-Level Mixed Effects | Methods proposal section, preliminary mixed-model results, DAG | *(to be filled in)* | *(to be filled in)* |
+| Xinyin Miao | Nonlinear Exposure-Response | Methods proposal section, preliminary nonlinear analysis | *(to be filled in)* | *(to be filled in)* |
+| Teresa Sha | Case-crossover | Methods proposal section, preliminary case-crossover results | *(to be filled in)* | *(to be filled in)* |
+
+Note: initial methods proposal listed Xinyin as TBD; the role was finalized as Nonlinear Exposure-Response during the preliminary results phase.
