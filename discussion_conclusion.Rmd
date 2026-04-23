@@ -104,9 +104,9 @@ These findings fit the mixed literature on short-term PM2.5 and psychiatric outc
 
 | Member | Method | Past contributions | This check-in | Future responsibilities |
 |--------|--------|--------------------|---------------|-------------------------|
-| Yiming Cao | Quasi-Poisson Time Series GLM | Data preprocessing (city-wide + borough-level), EDA, methods proposal section, preliminary GLM results | Discussion section for Quasi-Poisson GLM; literature review | Final write-up of GLM section; help with conclusion |
-| Zichen Fan | Borough-Level Mixed Effects | Methods proposal section, preliminary mixed-model results, DAG | *(to be filled in)* | *(to be filled in)* |
-| Xinyin Miao | Nonlinear Exposure-Response | Methods proposal section, preliminary nonlinear analysis | *(to be filled in)* | *(to be filled in)* |
-| Teresa Sha | Case-crossover | Methods proposal section, preliminary case-crossover results | *(to be filled in)* | *(to be filled in)* |
+| Yiming Cao | Quasi-Poisson Time Series GLM | Data acquisition, EDA and figures; methods proposal section for GLM; preliminary GLM results; borough-level dataset preprocessing (`prep_borough.py`) for mixed model | Discussion section for Quasi-Poisson GLM; literature review; set up shared Rmd for this check-in | Final write-up of GLM section; contribute to conclusion |
+| Zichen Fan | Borough-Level Mixed Effects | Methods proposal section for mixed model; preliminary mixed-effects model fitting, plots, and key results; formatting updates | *(to be filled in)* | *(to be filled in)* |
+| Xinyin Miao | Nonlinear Exposure-Response | Repository initial setup; methods proposal section for nonlinear analysis; preliminary nonlinear analysis and sensitivity (nonlinear precipitation); DAG | *(to be filled in)* | *(to be filled in)* |
+| Teresa Sha | Case-crossover | Initial case-crossover Rmd; case-crossover sensitivity analysis; preliminary case-crossover results | *(to be filled in)* | *(to be filled in)* |
 
 Note: initial methods proposal listed Xinyin as TBD; the role was finalized as Nonlinear Exposure-Response during the preliminary results phase.
