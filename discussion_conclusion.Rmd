@@ -74,11 +74,17 @@ More broadly, the null short-term finding is informative when read alongside the
 
 ### Key results
 
-*(to be filled in)*
+In this study, we examined the short-term relationship between PM2.5 and EMS calls in New York City. Overall, PM2.5 shows a weak association with mental health–related EMS calls. From both the plots and the models, the relationship does not appear to be clearly linear. There is a slight increase at lower to moderate PM2.5 levels, but the curve becomes flatter at higher levels. For suicide-related calls, the association is even weaker and less consistent. In contrast, temperature shows a clearer positive relationship with both outcomes. We also observed strong temporal patterns, including seasonality and a noticeable decrease in EMS calls on weekends.
 
 ### Interpretation
 
-*(to be filled in)*
+These results suggest that short-term PM2.5 exposure may not be a strong trigger for acute mental health–related EMS events in this dataset. One possible explanation is that PM2.5 levels during the study period are relatively low most of the time, so the effect is not very obvious. Another explanation is that mental health outcomes are influenced by many factors, such as social and psychological stress, which may be more important than short-term environmental exposure. The non-linear pattern we observed could also be due to limited data at higher PM2.5 levels, making the curve less stable in that range. On the other hand, the stronger association with temperature suggests that weather conditions may play a more important role in short-term variation in EMS calls.
+
+When comparing our findings with previous studies, the results are generally consistent with the mixed evidence reported in the literature. Some studies have found positive associations between PM2.5 and mental health outcomes, such as increased psychiatric visits or depressive symptoms. However, other studies report weak or inconsistent short-term effects, especially when focusing on acute outcomes. Our findings are closer to those studies showing limited short-term impact, which may be related to differences in exposure levels, outcome definitions, or study design. In our case, EMS calls may capture acute crises rather than underlying mental health conditions, which could also explain the weaker association.
+
+This study has several strengths. We used daily EMS data, which reflect real-time health demand, and combined multiple data sources, including air pollution and weather data. We also applied both a time-series model as the main analysis and a case-crossover design as a sensitivity analysis. In addition, we considered non-linear exposure-response relationships, lag effects, and potential effect modification. At the same time, there are some limitations. PM2.5 data are not available for every day, which reduces the sample size and statistical power. Exposure is based on city-level averages and may not represent individual exposure. EMS data may not capture all mental health events or their severity. The case-crossover analysis is applied to aggregated daily data rather than individual-level data, and there may still be some residual confounding from unmeasured factors.
+
+From a public health perspective, our results suggest that PM2.5 may not be the main short-term factor influencing mental health–related EMS demand. Instead, temperature and time-related patterns appear to be more important. This indicates that interventions focusing on extreme weather conditions and temporal patterns may be more effective for managing short-term EMS demand related to mental health.
 
 ### References
 
