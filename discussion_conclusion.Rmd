@@ -34,15 +34,23 @@ These findings fit the mixed literature on short-term PM2.5 and psychiatric outc
 
 ### Key results
 
-*(to be filled in)*
+I fit quasi-Poisson nonlinear exposure–response models using a natural spline for same-day PM2.5 (3 df), adjusting for seasonal trend, temperature, weekend, and precipitation, and compared them with the corresponding linear specifications for both outcomes.
+
+For mental health EMS calls, the nonlinear curve was approximately flat across the observed PM2.5 range with no clear threshold or positive trend, and the F-test did not indicate a significant departure from the linear model. For suicide-related EMS calls, the curve showed a slight dip at lower concentrations and a gradual rise at higher concentrations, but confidence intervals were wide throughout, reflecting the high variability of this low-count outcome. Sensitivity analyses confirmed that the mental health curve was robust to alternative PM2.5 spline df, time-trend specification, and precipitation functional form; the one notable finding was that excluding days above the 95th percentile PM2.5 (~12.9 μg/m³) attenuated the high-end pattern, suggesting modest leverage from a small number of extreme-exposure days.
 
 ### Interpretation
 
-*(to be filled in)*
+The absence of a strong or clearly nonlinear exposure–response pattern for same-day PM2.5 in 2024 NYC is consistent with limited exposure contrast in this dataset. The observed PM2.5 range was narrow — the 95th percentile was only about 12.9 μg/m³, well below WHO 24-hour guidelines and well below the concentrations studied in most published research reporting nonlinear associations. When exposure varies little and stays near the lower tail of the distribution seen in prior work, even a true nonlinear relationship would be difficult to detect: the curve is estimated primarily in a region where, under most proposed biological mechanisms, effects are expected to be small.
+
+The sensitivity analysis excluding the top 5% of PM2.5 days is informative in this respect. The few highest-exposure days appear to anchor the right end of the curve, and their exclusion shifts the curve modestly, suggesting that the estimated nonlinear shape at high PM2.5 is driven by a very small number of observations. This echoes the finding from Yiming's linear GLM, where the same exclusion moved the point estimate from 0.974 to 1.015. Together, these results caution against interpreting the nonlinear curve at the upper tail as a reliable signal.
+
+More broadly, the null short-term finding is informative when read alongside the broader literature. Yang et al. (2023) used UK Biobank data (n = 389,185; median PM2.5 ~9.9 μg/m³, comparable to 2024 NYC) and found that long-term multi-pollutant exposure was associated with increased depression and anxiety risk, with nonlinear exposure–response curves that were steeper at lower concentrations and plateaued at higher exposures. The contrast between their long-term findings and our null short-term result suggests that the accumulation of PM2.5 exposure over months or years, rather than a single day's exposure, may be the more relevant pathway for psychiatric outcomes — particularly in low-concentration settings like NYC where acute spikes are rare and the daily range of variation is narrow. Studies that found short-term PM2.5 associations, such as Kim et al. (2010) in South Korea and Bakian et al. (2015) in Salt Lake County, were conducted in settings with substantially higher or more variable ambient concentrations, providing greater statistical power to detect acute effects. This suggests that whether a nonlinear short-term exposure–response relationship can be detected may depend critically on exposure contrast, and that data from a single clean-air year in NYC are likely insufficient to characterize the acute curve at the upper tail reliably.
 
 ### References
 
-*(to be filled in)*
+- Bakian AV, Huber RS, Coon H, Gray D, Wilson P, McMahon WM, Renshaw PF. Acute air pollution exposure and risk of suicide completion. *Am J Epidemiol.* 2015;181(5):295–303.
+- Kim C, Jung SH, Kang DR, et al. Ambient particulate matter as a risk factor for suicide. *Am J Psychiatry.* 2010;167(9):1100–1107.
+- Yang T, Wang J, Huang J, Kelly FJ, Li G. Long-term exposure to multiple ambient air pollutants and association with incident depression and anxiety. *JAMA Psychiatry.* 2023;80(4):305–313.
 
 ---
 
@@ -106,7 +114,6 @@ These findings fit the mixed literature on short-term PM2.5 and psychiatric outc
 |--------|--------|--------------------|---------------|-------------------------|
 | Yiming Cao | Quasi-Poisson Time Series GLM | Data acquisition, EDA and figures; methods proposal section for GLM; preliminary GLM results; borough-level dataset preprocessing (`prep_borough.py`) for mixed model | Discussion section for Quasi-Poisson GLM; literature review; set up shared Rmd for this check-in | Final write-up of GLM section; contribute to conclusion |
 | Zichen Fan | Borough-Level Mixed Effects | Methods proposal section for mixed model; preliminary mixed-effects model fitting, plots, and key results; formatting updates | *(to be filled in)* | *(to be filled in)* |
-| Xinyin Miao | Nonlinear Exposure-Response | Repository initial setup; methods proposal section for nonlinear analysis; preliminary nonlinear analysis and sensitivity (nonlinear precipitation); DAG | *(to be filled in)* | *(to be filled in)* |
+| Xinyin Miao | Nonlinear Exposure-Response | Introduction of project; repository initial setup; methods proposal section for nonlinear analysis; preliminary nonlinear analysis and sensitivity (nonlinear precipitation); DAG |Discussion section for nonlinear analysis; literature review | Final write-up of nonlinear section; contribute to conclusion |
 | Teresa Sha | Case-crossover | Initial case-crossover Rmd; case-crossover sensitivity analysis; preliminary case-crossover results | *(to be filled in)* | *(to be filled in)* |
 
-Note: initial methods proposal listed Xinyin as TBD; the role was finalized as Nonlinear Exposure-Response during the preliminary results phase.
