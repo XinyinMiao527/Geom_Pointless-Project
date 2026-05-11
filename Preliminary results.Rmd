@@ -23,11 +23,8 @@ g <- dagitty("dag {
   PM25 -> MentalHealthEMS
   TimeTrend -> PM25
   TimeTrend -> MentalHealthEMS
-  Temperature -> PM25
-  Temperature -> MentalHealthEMS
   Precipitation -> PM25
   Precipitation -> MentalHealthEMS
-  Weekend -> PM25
   Weekend -> MentalHealthEMS
 }")
 
@@ -80,7 +77,6 @@ Primary nonlinear model:
 $$
 \log(\mu_t) = \beta_0 + \operatorname{ns}(\mathrm{PM}_{2.5,t}, 3)
 + \operatorname{ns}(\mathrm{time}_t, 4)
-+ \operatorname{ns}(\mathrm{tmean}_t, 3)
 + \beta_1 \cdot \mathrm{is\_weekend}_t
 + \beta_2 \cdot \mathrm{precip}_t
 $$
@@ -96,7 +92,6 @@ For comparison, the linear specification is:
 $$
 \log(\mu_t) = \beta_0 + \beta_1 \cdot \mathrm{PM}_{2.5,t}
 + \operatorname{ns}(\mathrm{time}_t, 4)
-+ \operatorname{ns}(\mathrm{tmean}_t, 3)
 + \beta_2 \cdot \mathrm{is\_weekend}_t
 + \beta_3 \cdot \mathrm{precip}_t
 $$
@@ -107,13 +102,13 @@ $$
 
 ```{r}
 fit_mh_linear <- glm(
-  mental_health ~ pm25 + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  mental_health ~ pm25 + ns(time, 4) + is_weekend + precip,
   family = quasipoisson(link = "log"),
   data = df
 )
 
 fit_mh_nonlinear <- glm(
-  mental_health ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  mental_health ~ ns(pm25, 3) + ns(time, 4) + is_weekend + precip,
   family = quasipoisson(link = "log"),
   data = df
 )
@@ -126,13 +121,13 @@ summary(fit_mh_nonlinear)
 
 ```{r}
 fit_sui_linear <- glm(
-  suicide ~ pm25 + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  suicide ~ pm25 + ns(time, 4) + is_weekend + precip,
   family = quasipoisson(link = "log"),
   data = df
 )
 
 fit_sui_nonlinear <- glm(
-  suicide ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  suicide ~ ns(pm25, 3) + ns(time, 4) + is_weekend + precip,
   family = quasipoisson(link = "log"),
   data = df
 )
@@ -190,7 +185,6 @@ make_er_curve <- function(model, data, outcome_name,
   newdata <- data.frame(
     pm25 = pm_seq,
     time = median(data$time, na.rm = TRUE),
-    tmean = median(data$tmean, na.rm = TRUE),
     is_weekend = 0,
     precip = median(data$precip, na.rm = TRUE)
   )
@@ -326,13 +320,13 @@ ggplot(curve_compare_sui, aes(x = pm25, y = RR, color = model_type)) +
 
 ```{r}
 fit_mh_nonlinear_df4 <- glm(
-  mental_health ~ ns(pm25, 4) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  mental_health ~ ns(pm25, 4) + ns(time, 4) + is_weekend + precip,
   family = quasipoisson(link = "log"),
   data = df
 )
 
 fit_sui_nonlinear_df4 <- glm(
-  suicide ~ ns(pm25, 4) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  suicide ~ ns(pm25, 4) + ns(time, 4) + is_weekend + precip,
   family = quasipoisson(link = "log"),
   data = df
 )
@@ -381,13 +375,13 @@ pm95 <- quantile(df$pm25, 0.95, na.rm = TRUE)
 df_no_high <- df |> filter(pm25 <= pm95)
 
 fit_mh_no_high <- glm(
-  mental_health ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  mental_health ~ ns(pm25, 3) + ns(time, 4) + is_weekend + precip,
   family = quasipoisson(link = "log"),
   data = df_no_high
 )
 
 fit_sui_no_high <- glm(
-  suicide ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + precip,
+  suicide ~ ns(pm25, 3) + ns(time, 4) + is_weekend + precip,
   family = quasipoisson(link = "log"),
   data = df_no_high
 )
@@ -432,7 +426,7 @@ ggplot(bind_rows(curve_sui_main, curve_sui_no_high), aes(pm25, RR, color = sampl
 fit_time_sensitivity <- function(outcome, time_df, data) {
   form <- as.formula(
     paste0(outcome,
-           " ~ ns(pm25, 3) + ns(time, ", time_df, ") + ns(tmean, 3) + is_weekend + precip")
+           " ~ ns(pm25, 3) + ns(time, ", time_df, ") + is_weekend + precip")
   )
 
   glm(form, family = quasipoisson(link = "log"), data = data)
@@ -483,13 +477,13 @@ ggplot(time_df_results_sui, aes(pm25, RR, color = time_df)) +
 
 ```{r}
 fit_mh_nl_precip <- glm(
-  mental_health ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + ns(precip, 3),
+  mental_health ~ ns(pm25, 3) + ns(time, 4) + is_weekend + ns(precip, 3),
   family = quasipoisson(link = "log"),
   data = df
 )
 
 fit_sui_nl_precip <- glm(
-  suicide ~ ns(pm25, 3) + ns(time, 4) + ns(tmean, 3) + is_weekend + ns(precip, 3),
+  suicide ~ ns(pm25, 3) + ns(time, 4) + is_weekend + ns(precip, 3),
   family = quasipoisson(link = "log"),
   data = df
 )
@@ -567,13 +561,13 @@ library(splines)
 df$time_days <- as.numeric(df$date - min(df$date))
 
 # mental health model
-fit_qp_mh <- glm(mental_health ~ pm25 + ns(time_days, 4) + ns(tmean, 3) +
+fit_qp_mh <- glm(mental_health ~ pm25 + ns(time_days, 4) +
                     is_weekend + precip,
                   family = quasipoisson(link = "log"),
                   data = df)
 
 # suicide model
-fit_qp_sui <- glm(suicide ~ pm25 + ns(time_days, 4) + ns(tmean, 3) +
+fit_qp_sui <- glm(suicide ~ pm25 + ns(time_days, 4) +
                      is_weekend + precip,
                    family = quasipoisson(link = "log"),
                    data = df)
@@ -637,7 +631,7 @@ ggplot(rr_table, aes(x = RR, y = outcome)) +
 ```{r}
 sens_df <- data.frame()
 for (d in 3:6) {
-  fit_tmp <- glm(mental_health ~ pm25 + ns(time_days, d) + ns(tmean, 3) +
+  fit_tmp <- glm(mental_health ~ pm25 + ns(time_days, d) +
                    is_weekend + precip,
                  family = quasipoisson, data = df)
   b <- coef(fit_tmp)["pm25"]
@@ -651,7 +645,7 @@ for (d in 3:6) {
     upper = exp((b + 1.96 * se) * 10)
   ))
 
-  fit_tmp2 <- glm(suicide ~ pm25 + ns(time_days, d) + ns(tmean, 3) +
+  fit_tmp2 <- glm(suicide ~ pm25 + ns(time_days, d) +
                      is_weekend + precip,
                    family = quasipoisson, data = df)
   b2 <- coef(fit_tmp2)["pm25"]
@@ -686,10 +680,10 @@ df_trimmed <- df[df$pm25 <= pm95_cutoff, ]
 cat("Excluded", nrow(df) - nrow(df_trimmed), "days with PM2.5 >",
     round(pm95_cutoff, 1), "μg/m³\n")
 
-fit_trim_mh <- glm(mental_health ~ pm25 + ns(time_days, 4) + ns(tmean, 3) +
+fit_trim_mh <- glm(mental_health ~ pm25 + ns(time_days, 4) +
                       is_weekend + precip,
                     family = quasipoisson, data = df_trimmed)
-fit_trim_sui <- glm(suicide ~ pm25 + ns(time_days, 4) + ns(tmean, 3) +
+fit_trim_sui <- glm(suicide ~ pm25 + ns(time_days, 4) +
                        is_weekend + precip,
                      family = quasipoisson, data = df_trimmed)
 
@@ -776,8 +770,7 @@ df_borough = read.csv("data/analysis_2024_borough.csv") |>
     date         = as.Date(date),
     borough      = factor(borough),
     time         = as.numeric(date - min(date)),
-    PM2.5.scaled = as.numeric(scale(pm25)),
-    tmean.scaled = as.numeric(scale(tmean))
+    PM2.5.scaled = as.numeric(scale(pm25))
   )
 ```
 
@@ -802,7 +795,7 @@ df_borough |>
 
 ```{r fit-ri}
 mod_RI <- glmmTMB(
-  mental_health ~ PM2.5.scaled + ns(time, 4) + ns(tmean.scaled, 3) +
+  mental_health ~ PM2.5.scaled + ns(time, 4) +
     is_weekend + precip + (1 | borough),
   family = nbinom2,
   data   = df_borough
@@ -811,7 +804,7 @@ mod_RI <- glmmTMB(
 
 ```{r fit-rirs}
 mod_RIRS <- glmmTMB(
-  mental_health ~ PM2.5.scaled + ns(time, 4) + ns(tmean.scaled, 3) +
+  mental_health ~ PM2.5.scaled + ns(time, 4) +
     is_weekend + precip + (1 + PM2.5.scaled | borough),
   family = nbinom2,
   data   = df_borough
@@ -1010,18 +1003,15 @@ df_cc <- df_cc %>%
   arrange(date) %>%
   mutate(
     pm25_lag1 = lag(pm25, 1),
-    pm25_lag2 = lag(pm25, 2),
-    tmean_lag1 = lag(tmean, 1),
-    rh_max_lag1 = lag(rh_max, 1)
+    pm25_lag2 = lag(pm25, 2)
   )
 
 ## Datasets for lag models
 df_cc_lag1 <- df_cc %>%
-  filter(!is.na(pm25_lag1), !is.na(tmean_lag1), !is.na(rh_max_lag1))
+  filter(!is.na(pm25_lag1))
 
 df_cc_lag2 <- df_cc %>%
-  filter(!is.na(pm25_lag1), !is.na(pm25_lag2),
-         !is.na(tmean_lag1), !is.na(rh_max_lag1))
+  filter(!is.na(pm25_lag1), !is.na(pm25_lag2))
 ```
 
 ```{r}
@@ -1055,7 +1045,7 @@ get_irr <- function(model, exposure_name = "pm25", increment = 1) {
 ## Outcome 1: mental_health
 ## Model 1: lag 0 only
 m_mh_lag0 <- gnm(
-  mental_health ~ pm25 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  mental_health ~ pm25,
   eliminate = stratum,
   family = quasipoisson(link = "log"),
   data = df_cc
@@ -1065,7 +1055,7 @@ m_mh_lag0 <- gnm(
 ```{r}
 ## Model 2: lag 0 + lag 1
 m_mh_lag01 <- gnm(
-  mental_health ~ pm25 + pm25_lag1 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  mental_health ~ pm25 + pm25_lag1,
   eliminate = stratum,
   family = quasipoisson(link = "log"),
   data = df_cc_lag1
@@ -1074,20 +1064,10 @@ m_mh_lag01 <- gnm(
 
 ```{r}
 
-## Model 3: interaction with heat_day
-m_mh_interaction <- gnm(
-  mental_health ~ pm25 * heat_day + ns(tmean, df = 3) + ns(rh_max, df = 3),
-  eliminate = stratum,
-  family = quasipoisson(link = "log"),
-  data = df_cc
-)
-```
-
-```{r}
 ## Outcome 2: suicide
 ## Model 4: lag 0 only
 m_su_lag0 <- gnm(
-  suicide ~ pm25 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  suicide ~ pm25,
   eliminate = stratum,
   family = quasipoisson(link = "log"),
   data = df_cc
@@ -1097,7 +1077,7 @@ m_su_lag0 <- gnm(
 ```{r}
 ## Model 5: lag 0 + lag 1
 m_su_lag01 <- gnm(
-  suicide ~ pm25 + pm25_lag1 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  suicide ~ pm25 + pm25_lag1,
   eliminate = stratum,
   family = quasipoisson(link = "log"),
   data = df_cc_lag1
@@ -1110,8 +1090,7 @@ m_su_lag01 <- gnm(
 ## ---------------------------
 ## This one is optional. Use only if you want one extra robustness check.
 m_mh_lag012 <- gnm(
-  mental_health ~ pm25 + pm25_lag1 + pm25_lag2 +
-    ns(tmean, df = 3) + ns(rh_max, df = 3),
+  mental_health ~ pm25 + pm25_lag1 + pm25_lag2,
   eliminate = stratum,
   family = quasipoisson(link = "log"),
   data = df_cc_lag2
@@ -1131,11 +1110,6 @@ cat("\n==============================\n")
 cat("Mental health model: lag 0 + lag 1\n")
 cat("==============================\n")
 print(summary(m_mh_lag01))
-
-cat("\n==============================\n")
-cat("Mental health model: PM2.5 * heat_day\n")
-cat("==============================\n")
-print(summary(m_mh_interaction))
 
 cat("\n==============================\n")
 cat("Suicide model: lag 0\n")
@@ -1190,7 +1164,6 @@ write.csv(
 
 saveRDS(m_mh_lag0, "results/m_mh_lag0.rds")
 saveRDS(m_mh_lag01, "results/m_mh_lag01.rds")
-saveRDS(m_mh_interaction, "results/m_mh_interaction.rds")
 saveRDS(m_su_lag0, "results/m_su_lag0.rds")
 saveRDS(m_su_lag01, "results/m_su_lag01.rds")
 saveRDS(m_mh_lag012, "results/m_mh_lag012.rds")
@@ -1205,7 +1178,6 @@ cat("\nSaved model outputs to /results folder.\n")
 coef_table <- bind_rows(
   tidy(m_mh_lag0) %>% mutate(model = "m_mh_lag0"),
   tidy(m_mh_lag01) %>% mutate(model = "m_mh_lag01"),
-  tidy(m_mh_interaction) %>% mutate(model = "m_mh_interaction"),
   tidy(m_su_lag0) %>% mutate(model = "m_su_lag0"),
   tidy(m_su_lag01) %>% mutate(model = "m_su_lag01"),
   tidy(m_mh_lag012) %>% mutate(model = "m_mh_lag012")
@@ -1292,57 +1264,6 @@ ggplot(df_pm25_month, aes(x = month, y = mean_pm25)) +
 ```
 
 ```{r}
-#PM2.5 by heat day
-ggplot(df_cc, aes(x = factor(heat_day), y = pm25)) +
-  geom_boxplot(fill = "#A6CEE3") +
-  labs(
-    title = "Distribution of PM2.5 by Heat Day",
-    x = "Heat Day",
-    y = expression("PM"[2.5] * " (" * mu * "g/" * m^3 * ")")
-  ) +
-  scale_x_discrete(labels = c("0" = "No", "1" = "Yes")) +
-  theme_minimal(base_size = 12) +
-  theme(
-    plot.title = element_text(face = "bold"),
-    axis.title = element_text(face = "bold")
-  )
-```
-
-```{r}
-#Mental health calls by heat day
-ggplot(df_cc, aes(x = factor(heat_day), y = mental_health)) +
-  geom_boxplot(fill = "#FDBF6F") +
-  labs(
-    title = "Mental Health EMS Calls by Heat Day",
-    x = "Heat Day",
-    y = "Number of Calls"
-  ) +
-  scale_x_discrete(labels = c("0" = "No", "1" = "Yes")) +
-  theme_minimal(base_size = 12) +
-  theme(
-    plot.title = element_text(face = "bold"),
-    axis.title = element_text(face = "bold")
-  )
-```
-
-```{r}
-#Suicide calls by heat day
-ggplot(df_cc, aes(x = factor(heat_day), y = suicide)) +
-  geom_boxplot(fill = "#CAB2D6") +
-  labs(
-    title = "Suicide-Related EMS Calls by Heat Day",
-    x = "Heat Day",
-    y = "Number of Calls"
-  ) +
-  scale_x_discrete(labels = c("0" = "No", "1" = "Yes")) +
-  theme_minimal(base_size = 12) +
-  theme(
-    plot.title = element_text(face = "bold"),
-    axis.title = element_text(face = "bold")
-  )
-```
-
-```{r}
 irr_plot_data <- irr_results %>%
   filter(increment == 1) %>%
   mutate(
@@ -1398,7 +1319,7 @@ ggplot(mh_lag_compare, aes(x = IRR, y = reorder(model, IRR))) +
 ```
 
 ```{r}
-#Heat day interaction plot
+#IRR by heat day (descriptive summary, no model)
 df_interaction_plot <- df_cc %>%
   group_by(heat_day) %>%
   summarise(
@@ -1410,8 +1331,8 @@ df_interaction_plot <- df_cc %>%
 ggplot(df_interaction_plot, aes(x = factor(heat_day), y = mean_mh)) +
   geom_col(fill = "#FB9A99") +
   labs(
-    title = "Average Mental Health EMS Calls by Heat Day",
-    x = "Heat Day",
+    title = "Average Mental Health EMS Calls by Heat Day (Descriptive)",
+    x = "Heat Day (1 = above 90th percentile of Tmax)",
     y = "Average Number of Calls"
   ) +
   scale_x_discrete(labels = c("0" = "No", "1" = "Yes")) +
