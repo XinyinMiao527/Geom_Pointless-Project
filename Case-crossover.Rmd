@@ -134,18 +134,15 @@ df_cc <- df_cc %>%
   arrange(date) %>%
   mutate(
     pm25_lag1 = lag(pm25, 1),
-    pm25_lag2 = lag(pm25, 2),
-    tmean_lag1 = lag(tmean, 1),
-    rh_max_lag1 = lag(rh_max, 1)
+    pm25_lag2 = lag(pm25, 2)
   )
 
 ## Datasets for lag models
 df_cc_lag1 <- df_cc %>%
-  filter(!is.na(pm25_lag1), !is.na(tmean_lag1), !is.na(rh_max_lag1))
+  filter(!is.na(pm25_lag1))
 
 df_cc_lag2 <- df_cc %>%
-  filter(!is.na(pm25_lag1), !is.na(pm25_lag2),
-         !is.na(tmean_lag1), !is.na(rh_max_lag1))
+  filter(!is.na(pm25_lag1), !is.na(pm25_lag2))
 ```
 
 ```{r}
@@ -179,7 +176,7 @@ get_irr <- function(model, exposure_name = "pm25", increment = 1) {
 ## Outcome 1: mental_health
 ## Model 1: lag 0 only
 m_mh_lag0 <- gnm(
-  mental_health ~ pm25 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  mental_health ~ pm25,
   eliminate = stratum,
   family = quasipoisson(link = "log"),
   data = df_cc
@@ -189,7 +186,7 @@ m_mh_lag0 <- gnm(
 ```{r}
 ## Model 2: lag 0 + lag 1
 m_mh_lag01 <- gnm(
-  mental_health ~ pm25 + pm25_lag1 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  mental_health ~ pm25 + pm25_lag1,
   eliminate = stratum,
   family = quasipoisson(link = "log"),
   data = df_cc_lag1
@@ -197,21 +194,10 @@ m_mh_lag01 <- gnm(
 ```
 
 ```{r}
-
-## Model 3: interaction with heat_day
-m_mh_interaction <- gnm(
-  mental_health ~ pm25 * heat_day + ns(tmean, df = 3) + ns(rh_max, df = 3),
-  eliminate = stratum,
-  family = quasipoisson(link = "log"),
-  data = df_cc
-)
-```
-
-```{r}
 ## Outcome 2: suicide
 ## Model 4: lag 0 only
 m_su_lag0 <- gnm(
-  suicide ~ pm25 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  suicide ~ pm25,
   eliminate = stratum,
   family = quasipoisson(link = "log"),
   data = df_cc
@@ -221,7 +207,7 @@ m_su_lag0 <- gnm(
 ```{r}
 ## Model 5: lag 0 + lag 1
 m_su_lag01 <- gnm(
-  suicide ~ pm25 + pm25_lag1 + ns(tmean, df = 3) + ns(rh_max, df = 3),
+  suicide ~ pm25 + pm25_lag1,
   eliminate = stratum,
   family = quasipoisson(link = "log"),
   data = df_cc_lag1
@@ -234,8 +220,7 @@ m_su_lag01 <- gnm(
 ## ---------------------------
 ## This one is optional. Use only if you want one extra robustness check.
 m_mh_lag012 <- gnm(
-  mental_health ~ pm25 + pm25_lag1 + pm25_lag2 +
-    ns(tmean, df = 3) + ns(rh_max, df = 3),
+  mental_health ~ pm25 + pm25_lag1 + pm25_lag2,
   eliminate = stratum,
   family = quasipoisson(link = "log"),
   data = df_cc_lag2
@@ -255,11 +240,6 @@ cat("\n==============================\n")
 cat("Mental health model: lag 0 + lag 1\n")
 cat("==============================\n")
 print(summary(m_mh_lag01))
-
-cat("\n==============================\n")
-cat("Mental health model: PM2.5 * heat_day\n")
-cat("==============================\n")
-print(summary(m_mh_interaction))
 
 cat("\n==============================\n")
 cat("Suicide model: lag 0\n")
@@ -314,7 +294,6 @@ write.csv(
 
 saveRDS(m_mh_lag0, "results/m_mh_lag0.rds")
 saveRDS(m_mh_lag01, "results/m_mh_lag01.rds")
-saveRDS(m_mh_interaction, "results/m_mh_interaction.rds")
 saveRDS(m_su_lag0, "results/m_su_lag0.rds")
 saveRDS(m_su_lag01, "results/m_su_lag01.rds")
 saveRDS(m_mh_lag012, "results/m_mh_lag012.rds")
@@ -329,7 +308,6 @@ cat("\nSaved model outputs to /results folder.\n")
 coef_table <- bind_rows(
   tidy(m_mh_lag0) %>% mutate(model = "m_mh_lag0"),
   tidy(m_mh_lag01) %>% mutate(model = "m_mh_lag01"),
-  tidy(m_mh_interaction) %>% mutate(model = "m_mh_interaction"),
   tidy(m_su_lag0) %>% mutate(model = "m_su_lag0"),
   tidy(m_su_lag01) %>% mutate(model = "m_su_lag01"),
   tidy(m_mh_lag012) %>% mutate(model = "m_mh_lag012")
