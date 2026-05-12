@@ -827,6 +827,38 @@ summary(mod_RI)$coefficients$cond |>
   kable(caption = "Fixed effects (rate ratios) — Random Intercept model")
 ```
 
+
+```{r fixed-effect-forest-plot, fig.width=6, fig.height=3}
+fe_plot_df =
+  summary(mod_RI)$coefficients$cond |>
+  as.data.frame() |>
+  tibble::rownames_to_column("Term") |>
+  filter(Term %in% c("PM2.5.scaled", "is_weekendTRUE")) |>
+  mutate(
+    Term = recode(
+      Term,
+      "PM2.5.scaled" = "PM2.5, per 1-SD increase",
+      "is_weekendTRUE" = "Weekend vs. weekday"
+    ),
+    RR = exp(Estimate),
+    LCI = exp(Estimate - 1.96 * `Std. Error`),
+    UCI = exp(Estimate + 1.96 * `Std. Error`)
+  )
+
+fe_plot_df |>
+  ggplot(aes(x = RR, y = reorder(Term, RR))) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "grey50") +
+  geom_pointrange(aes(xmin = LCI, xmax = UCI), size = 0.7) +
+  scale_x_log10() +
+  labs(
+    x = "Rate ratio, log scale",
+    y = NULL,
+    title = "Rate ratios from the borough-level mixed-effects model"
+  ) +
+  theme_bw(base_size = 11)
+```
+
+
 ## Spacial Variance
 
 ```{r vc-ri}
